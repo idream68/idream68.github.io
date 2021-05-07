@@ -2,10 +2,10 @@
 menu:
   主页: /
   归档: /archives
+  摄影: https://500px.com.cn/idream68
   分类: /categories
   标签: /tags
   #旅行: /tags/旅行/
-  #摄影: http://shenyu-vip.lofter.com
   #友链: /friends
   #关于我: /2019/about
 
@@ -39,7 +39,7 @@ progressBar: true
 # 告示板模块
 broadcast:
   enable: true # true开启，false关闭
-  type: 1 # 1：自定义输入，2：一言api(https://hitokoto.cn/)
+  type: 2 # 1：自定义输入，2：一言api(https://hitokoto.cn/)
   text: 每天进步一点点 # type为1时有效
 
 # 文章配置

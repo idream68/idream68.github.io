@@ -2,8 +2,7 @@
 title: mysql,mongo数据迁移
 date: 2021-05-08 16:10:00
 categories:
-  - mysql
-  - mongo
+  - database
 tags:
   - mysql
   - mongo

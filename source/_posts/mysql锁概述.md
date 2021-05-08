@@ -6,6 +6,7 @@ categories:
 tags: 
   - mysql
   - 锁
+typora-root-url: ..
 ---
 
 ![image](/images/mysql锁.png)

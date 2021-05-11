@@ -307,8 +307,9 @@ c2(yes)->io->e
 c2(no)->op2->e
 ```
 
-```
-​```flow
+示例：
+
+flow
 st=>start: Start|past:>http://www.google.com[blank]
 e=>end: End:>http://www.google.com
 op1=>operation: get_hotel_ids|past
@@ -340,7 +341,8 @@ cond3(yes, right)->cond5
 cond5(yes)->op5
 cond5(no)->cond3
 op5->e
-```
+
+效果：
 
 ```flow
 st=>start: Start|past:>http://www.google.com[blank]

@@ -90,7 +90,7 @@ weixin: https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/wechat.jpg
 
 # 版权声明
 # 版权声明type设定：0-关闭版权声明； 1-文章对应的md文件里有copyright: true属性，才有版权声明； 2-所有文章均有版权声明
-copyright_type: 0
+copyright_type: 2
 
 # 是否启用搜索
 # 需要安装hexo-generator-searchdb(https://github.com/theme-next/hexo-generator-searchdb)

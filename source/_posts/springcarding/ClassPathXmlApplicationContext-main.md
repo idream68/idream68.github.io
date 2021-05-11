@@ -1,5 +1,5 @@
 ---
-title: ClassPathXmlApplicationContext主流程图
+title: ClassPathXmlApplicationContext初始化主流程图
 date: 2021-05-11 15:18:32
 categories:
   - spring
@@ -8,18 +8,18 @@ tags:
   - spring
 ---
 
-### 流程图：
+### 流程图
 
 ```flow
 st=>start: Start
 e=>end
-create=>operation: 创建容器|:>x
-set_config_path=>operation: 设置配置文件路径|:>y
+create=>operation: 创建容器|:>/2021/05/11/springcarding/AbstractXmlApplicationContext-new
+set_config_path=>operation: 设置配置文件路径|:>/2021/05/11/springcarding/AbstractRefreshableConfigApplicationContext-setConfigLocations
 refresh_content=>operation: 刷新容器，加载bean|:>/2021/05/11/springcarding/AbstractApplicationContext-refresh
 st(right)->create(right)->set_config_path(right)->refresh_content(right)->e
 ```
 
-### 方法说明：
+### 流程说明
 
 1. 创建容器
    1. 类：org.springframework.context.support.AbstractXmlApplicationContext
@@ -28,13 +28,9 @@ st(right)->create(right)->set_config_path(right)->refresh_content(right)->e
    4. 说明：根据给定的父容器生成实例
 2. 设置配置文件路径
    1. 类：org.springframework.context.support.AbstractRefreshableConfigApplicationContext
-
    2. 说明：
-
       在AbstractRefreshableApplicationContext的基础上添加了公共读取本地配置文件的方法。用作基于XML的应用程序上下文实现的基类
-
    3. 方法：setConfigLocations(@Nullable String... locations)
-
    4. 方法说明：设置应用容器的本地配置路径，如果为空，则使用适当的默认值
 3. 刷新容器，加载bean
    1. 类：  org.springframework.context.support.AbstractApplicationContext

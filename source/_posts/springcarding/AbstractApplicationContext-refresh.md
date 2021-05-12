@@ -10,8 +10,8 @@ tags:
 
 ### 流程图
 ```flow
-s=>start: 入口|:>2021/05/11/springcarding/ClassPathXmlApplicationContext-main
-e=>end: 返回|:>2021/05/11/springcarding/ClassPathXmlApplicationContext-main
+s=>start: 入口|:>/2021/05/11/springcarding/ClassPathXmlApplicationContext-main
+e=>end: 返回|:>/2021/05/11/springcarding/ClassPathXmlApplicationContext-main
 prepare=>operation: 准备刷新|:>.
 obtainFresh=>operation: 告知子类刷新内部bean工厂|:>.
 prepareBeanFactory=>operation: 准备要使用的bean工厂|:>.

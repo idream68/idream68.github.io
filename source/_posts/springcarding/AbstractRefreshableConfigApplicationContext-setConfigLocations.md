@@ -11,8 +11,8 @@ tags:
 ### 流程图
 
 ```flow
-s=>start: 入口|:>2021/05/11/springcarding/ClassPathXmlApplicationContext-main
-e=>end: 返回|:>2021/05/11/springcarding/ClassPathXmlApplicationContext-main
+s=>start: 入口|:>/2021/05/11/springcarding/ClassPathXmlApplicationContext-main
+e=>end: 返回|:>/2021/05/11/springcarding/ClassPathXmlApplicationContext-main
 locations=>operation: 将路径加载到内存
 s->locations->e
 ```

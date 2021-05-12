@@ -1,5 +1,5 @@
 ---
-title: ClassPathXmlApplicationContext初始化主流程图
+title: ClassPathXmlApplicationContext初始化主流程
 date: 2021-05-11 15:18:32
 categories:
   - spring

@@ -10,10 +10,10 @@ tags:
 
 ### 流程图
 ```flow
-s=>start: Start
-e=>end: End
-getResourceResolver=>operation: 获取资源解析器(解析本地配置文件等资源)
-setParent=>operation: 设置父容器
+s=>start: 入口|:>2021/05/11/springcarding/ClassPathXmlApplicationContext-main
+e=>end: 返回|:>2021/05/11/springcarding/ClassPathXmlApplicationContext-main
+getResourceResolver=>operation: 获取资源解析器(解析本地配置文件等资源)|:>.
+setParent=>operation: 设置父容器|:>.
 s->getResourceResolver
 getResourceResolver->setParent
 setParent->e

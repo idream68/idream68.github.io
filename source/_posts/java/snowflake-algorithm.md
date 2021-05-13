@@ -15,7 +15,7 @@ typora-root-url: ..
 
 这 64 个 bit 中，其中 1 个 bit 是不用的，然后用其中的 41 bit 作为毫秒数，用 10 bit 作为工作机器 id，12 bit 作为序列号。
 
- ![image](/images/雪花算法.png)
+ ![image](/images/snowflake-algorithm.png)
 
 雪花算法简单描述：
 + 最高位是符号位，始终为0，不可用。

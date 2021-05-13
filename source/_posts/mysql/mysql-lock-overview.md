@@ -9,5 +9,5 @@ tags:
 typora-root-url: ..
 ---
 
-![image](/images/mysql锁.png "锁说明")
+![image](/images/mysql-lock-1.png "锁说明")
 

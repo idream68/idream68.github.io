@@ -12,7 +12,7 @@ typora-root-url: ..
 
 ## 一、什么是Docker Swarm
 
-![img](/images/docker-swarm-1.png)
+![img](/images/docker-swarm/docker-swarm-1.png)
 
 　　Swarm是Docker公司推出的用来管理docker集群的平台，几乎全部用GO语言来完成的开发的，代码开源在https://github.com/docker/swarm， 它是将一群Docker宿主机变成一个单一的虚拟主机，Swarm使用标准的Docker API接口作为其前端的访问入口，换言之，各种形式的Docker
 
@@ -26,7 +26,7 @@ Client(compose,docker-py等)均可以直接与Swarm通信，甚至Docker本身�
 
 ## 二、Docker Swarm 基本结构图
 
-![img](/images/docker-swarm-2.png)
+![img](/images/docker-swarm/docker-swarm-2.png)
 
 在结构图可以看出 Docker Client使用Swarm对 集群(Cluster)进行调度使用。
 
@@ -70,19 +70,19 @@ worker nodes，也就是工作节点
 
 1. Node
 
-![img](/images/docker-swarm-3.png)
+![img](/images/docker-swarm/docker-swarm-3.png)
 
 2. Service
 
-![img](/images/docker-swarm-4.png)
+![img](/images/docker-swarm/docker-swarm-4.png)
 
 3. 任务与调度
 
-![img](/images/docker-swarm-5.png)
+![img](/images/docker-swarm/docker-swarm-5.png)
 
 4. 服务副本与全局服务
 
-![img](/images/docker-swarm-6.png)
+![img](/images/docker-swarm/docker-swarm-6.png)
 
  
 
@@ -688,15 +688,15 @@ wge5w1eqykg3        deploy_deamon_visualizer.1   dockersamples/visualizer:latest
 
 测试
 
-![img](/images/docker-swarm-7.png)
+![img](/images/docker-swarm/docker-swarm-7.png)
 
-![img](/images/docker-swarm-8.png)
+![img](/images/docker-swarm/docker-swarm-8.png)
 
-![img](/images/docker-swarm-9.png)
+![img](/images/docker-swarm/docker-swarm-9.png)
 
-![img](/images/docker-swarm-10.png)
+![img](/images/docker-swarm/docker-swarm-10.png)
 
-![img](/images/docker-swarm-11.png)
+![img](/images/docker-swarm/docker-swarm-11.png)
 
 ## 八、Docker Swarm 容器网络
 
@@ -838,7 +838,7 @@ my-test.4.cyu73jd8psupfhken23vvmpud的task连接到名为ngx_net的网络上（�
 由上结果可知，10.10.19.2其实就是swarm集群内部的vip，整个网络结构如下图所示：
 ```
 
-　![img](/images/docker-swarm-12.png)
+　![img](/images/docker-swarm/docker-swarm-12.png)
 
 加入ngx_net网络的容器彼此之间可以通过IP地址通信，也可以通过名称通信。
 

@@ -29,8 +29,8 @@ logo: /images/ayer-side.svg
 # 封面配置
 # enable-是否启用封面；path-封面背景图；logo-封面logo
 cover:
-  enable: false
-  path: /images/cover3.jpg # /source/images目录下附送多张美图，可更换
+  enable: true
+  path: /images/cover6.jpg # /source/images目录下附送多张美图，可更换
   logo: false #/images/ayer.svg，如果不要直接设置成false
 
 # 页面顶部进度条
@@ -123,7 +123,7 @@ layout:
 github:
   # (关闭请设置为false)
   enable: true
-  url: https://github.com/idream68/idream68.github.io
+  url: https://github.com/idream68
 
 # 网易云音乐插件
 music:

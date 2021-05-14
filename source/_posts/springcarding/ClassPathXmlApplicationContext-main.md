@@ -13,9 +13,9 @@ tags:
 ```flow
 st=>start: Start
 e=>end
-create=>operation: 创建容器|:>/2021/05/11/springcarding/AbstractXmlApplicationContext-new
-set_config_path=>operation: 设置配置文件路径|:>/2021/05/11/springcarding/AbstractRefreshableConfigApplicationContext-setConfigLocations
-refresh_content=>operation: 刷新容器，加载bean|:>/2021/05/11/springcarding/AbstractApplicationContext-refresh
+create=>subroutine: 创建容器|:>/2021/05/11/springcarding/AbstractXmlApplicationContext-new
+set_config_path=>subroutine: 设置配置文件路径|:>/2021/05/11/springcarding/AbstractRefreshableConfigApplicationContext-setConfigLocations
+refresh_content=>subroutine: 刷新容器，加载bean|:>/2021/05/11/springcarding/AbstractApplicationContext-refresh
 st(right)->create(right)->set_config_path(right)->refresh_content(right)->e
 ```
 

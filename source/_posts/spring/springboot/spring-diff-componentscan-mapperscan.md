@@ -2,6 +2,7 @@
 title: spring @ComponentScan和@MapperScan区别
 date: 2021-05-10 11:47:40
 categories:
+  - spring
   - springboot
 tags:
   - springboot

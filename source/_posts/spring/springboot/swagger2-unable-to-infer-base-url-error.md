@@ -2,6 +2,7 @@
 title: SpringBoot使用Swagger2提示Unable to infer base url错误
 date: 2021-05-08 11:57:40
 categories:
+  - spring
   - springboot
 tags:
   - swagger

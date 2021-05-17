@@ -2,6 +2,7 @@
 title: mysql 索引
 date: 2021-05-13 11:54:26
 categories:
+  - database
   - mysql
 tags:
   - mysql

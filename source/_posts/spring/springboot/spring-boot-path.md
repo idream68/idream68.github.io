@@ -1,7 +1,9 @@
 ---
 title: springboot 配置文件 server.context-path 路径
 date: 2021-04-30 14:14:53
-categories: springboot
+categories: 
+  - spring
+  - springboot
 tags:
   - springboot
   - path

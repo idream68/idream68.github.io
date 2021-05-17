@@ -2,6 +2,7 @@
 title: mysql锁概述
 date: 2021-04-28 20:44:07
 categories: 
+  - database
   - mysql
 tags: 
   - mysql

@@ -2,6 +2,7 @@
 title: mysql面试题目
 date: 2021-04-28 15:19:09
 categories: 
+  - database
   - mysql
 tags: 
   - mysql

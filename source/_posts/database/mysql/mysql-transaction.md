@@ -2,6 +2,7 @@
 title: mysql 事务 MVCC
 date: 2021-05-13 11:54:00
 categories:
+  - database
   - mysql
 tags:
   - mysql

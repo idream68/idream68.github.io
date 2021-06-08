@@ -42,3 +42,40 @@ finishRefresh->e
 
 ### 流程说明
 
+
+
+### 准备刷新
+
+```flow
+s=>start: 入口
+startupDate=>operation: 设置启动时间
+setClosedFlag=>operation: 设置关闭标志位
+setActiveFlag=>operation: 设置活动标志位
+writeLog=>operation: 记录日志
+initPropertySources=>subroutine: 初始化占位符资源
+validateProperties=>subroutine: 验证所有标记属性都是可解析的
+earlyListenersExists=>condition: 早期监听器是否存在
+setEarlyListeners=>operation: 设置早期监听器
+cleanLinteners=>operation: 清空监听器
+addListeners=>operation: 将早期监听器添加到监听器中
+setEarlyEnents=>operation: 初始化事件收集器
+e=>end: 返回
+s->startupDate
+startupDate->setClosedFlag
+setClosedFlag->setActiveFlag
+setActiveFlag->writeLog
+writeLog->initPropertySources
+initPropertySources->validateProperties
+validateProperties->earlyListenersExists
+earlyListenersExists(no,left)->setEarlyListeners
+earlyListenersExists(yes)->cleanLinteners
+cleanLinteners->addListeners
+setEarlyListeners->setEarlyEnents
+addListeners->setEarlyEnents
+setEarlyEnents->e
+```
+
+### 流程说明
+
+
+

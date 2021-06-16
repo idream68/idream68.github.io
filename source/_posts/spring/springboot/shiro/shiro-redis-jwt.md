@@ -19,4 +19,6 @@ shiro-redis 和 shiro-jwt 的结合版，可以附加功能
 3. 并发控制
 4. ...
 
+附加功能建议使用 session+redis
+
 [完整代码示例](https://github.com/idream68/spring-demo/tree/master/shiro_redis_token)

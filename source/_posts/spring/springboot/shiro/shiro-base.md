@@ -74,6 +74,10 @@ Realm： Realm充当了Shiro与应用安全数据间的“桥梁”或者“连�
 >
 > As mentioned above, Realms act as the ‘bridge’ or ‘connector’ between Shiro and your application’s security data. When it comes time to actually interact with security-related data like user accounts to perform authentication (login) and authorization (access control), Shiro looks up many of these things from one or more Realms configured for an application. You can configure as many Realms as you need (usually one per data source) and Shiro will coordinate with them as necessary for both authentication and authorization.
 
+
+
+过滤器说明
+
 | 过滤器 | 描述 |
 | :--: | :--: |
 | anon | 表示可以匿名使用 |
@@ -85,6 +89,8 @@ Realm： Realm充当了Shiro与应用安全数据间的“桥梁”或者“连�
 | roles | 角色 |
 | ssl | 表示安全的url请求 |
 | user | 表示必须存在用户，当登入操作时不做检查 |
+| ... | 自定义 |
+
 
 [代码示例](https://github.com/idream68/spring-demo/tree/master/shiro_base)
 

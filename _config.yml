@@ -103,5 +103,5 @@ theme: hexo-theme-ayer
 ## Docs: https://hexo.io/docs/one-command-deployment
 deploy:
   type: 'git'
-  repo: 'https://github.com/idream68/idream68.github.io'
+  repo: 'git@github.com:idream68/idream68.github.io.git'
   branch: deploy

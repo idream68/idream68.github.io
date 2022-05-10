@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+  
+
+    <head>
+      <meta charset="utf-8" />
+        
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1"
+      />
+      <title>mysql面试题目 |  Dream</title>
+  <meta name="generator" content="hexo-theme-ayer">
+      
+      <link rel="shortcut icon" href="/favicon.ico" />
+       
+<link rel="stylesheet" href="/dist/main.css">
+
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css"
+      />
+      
+<link rel="stylesheet" href="/css/custom.css">
+ 
+      <script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+       
+ 
+
+      <!-- mermaid -->
+      
+      <script src="https://cdn.jsdelivr.net/npm/mermaid@8.9.2/dist/mermaid.min.js"></script>
+      
+    <link rel="alternate" href="/atom.xml" title="Dream" type="application/atom+xml">
+</head>
+  </html>
+</html>
+
+
+<body>
+  <div id="app">
+    
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-database/mysql/mysql-Interview-questions"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  mysql面试题目
+</h1>
+ 
+
+      
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2021/04/28/database/mysql/mysql-Interview-questions/" class="article-date">
+  <time datetime="2021-04-28T07:19:09.000Z" itemprop="datePublished">2021-04-28</time>
+</a> 
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/database/">database</a> / <a class="article-category-link" href="/categories/database/mysql/">mysql</a>
+  </div>
+  
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">3.5k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">11 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="多表查询"><a href="#多表查询" class="headerlink" title="多表查询"></a>多表查询</h1><ol>
+<li><h3 id="多表查询连接方式有哪些？"><a href="#多表查询连接方式有哪些？" class="headerlink" title="多表查询连接方式有哪些？"></a>多表查询连接方式有哪些？</h3>​		内连接、左外连接、右外连接、外连接</li>
+<li><h3 id="解释-MySQL-外连接、内连接、左外，右外连接区别"><a href="#解释-MySQL-外连接、内连接、左外，右外连接区别" class="headerlink" title="解释 MySQL 外连接、内连接、左外，右外连接区别"></a>解释 MySQL 外连接、内连接、左外，右外连接区别</h3>​		内连接 则是只有条件的交叉连接，根据某个条件筛选出符合条件的记录，不符合条件的记录不会出现在结果集中，即内连接只连接匹配的行。<br>​		外连接 其结果集中不仅包含符合连接条件的行，而且还会包括左表、右表或两个表中的所有数据行，这三种情况依次称之为左外连接，右外连接，和全外连接。<br>​		左外连接，也称左连接，左表为主表，左表中的所有记录都会出现在结果集中，对于那些在右表中并没有匹配的记录，仍然要显示，右边对应的那些字段值以NULL 来填充。右外连接，也称右连接，右表为主表，右表中的所有记录都会出现在结果集中。左连接和右连接可以互换，MySQL 目前还不支持全外连接。</li>
+</ol>
+<h1 id="函数"><a href="#函数" class="headerlink" title="函数"></a>函数</h1><ol>
+<li><h3 id="通用SQL函数有哪些？"><a href="#通用SQL函数有哪些？" class="headerlink" title="通用SQL函数有哪些？"></a>通用SQL函数有哪些？</h3><ol>
+<li>CONCAT(A, B) – 连接两个字符串值以创建单个字符串输出。通常用于将两个或多个字段合并为一个字段。</li>
+<li>FORMAT(X, D)- 格式化数字 X 到 D 有效数字。</li>
+<li>CURRDATE(), CURRTIME()- 返回当前日期或时间。</li>
+<li>NOW（） – 将当前日期和时间作为一个值返回。</li>
+<li>MONTH（），DAY（），YEAR（），WEEK（），WEEKDAY（） – 从日期值中提取给定数据。</li>
+<li>HOUR（），MINUTE（），SECOND（） – 从时间值中提取给定数据。</li>
+<li>DATEDIFF（A，B） – 确定两个日期之间的差异，通常用于计算年龄</li>
+<li>SUBTIMES（A，B） – 确定两次之间的差异。</li>
+<li>FROMDAYS（INT） – 将整数天数转换为日期值。</li>
+</ol>
+</li>
+</ol>
+<h1 id="事务"><a href="#事务" class="headerlink" title="事务"></a>事务</h1><ol>
+<li><h3 id="数据库中的事务是什么"><a href="#数据库中的事务是什么" class="headerlink" title="数据库中的事务是什么?"></a>数据库中的事务是什么?</h3><p>​		事务（transaction）是作为一个单元的一组有序的数据库操作。如果组中的所有操作都成功，则认为事务成功，即使只有一个操作失败，事务也不成功。如果所有操作完成，事务则提交，其修改将作用于所有其他数据库进程。如果一个操作失败，则事务将回滚，该事务所有操作的影响都将取消。</p>
+<p>​		或者这样理解：事务就是被绑定在一起作为一个逻辑工作单元的 SQL 语句分组，如果任何一个语句操作失败那么整个操作就被失败，以后操作就会回滚到操作前状态，或者是上有个节点。为了确保要么执行，要么不执行，就可以使用事务。要将有组语句作为事务考虑，就需要通过 ACID 测试，即原子性，一致性，隔离性和持久性。</p>
+<p>事务特性：</p>
+<ol>
+<li>原子性：即不可分割性，事务要么全部被执行，要么就全部不被执行。</li>
+<li>一致性或可串性。事务的执行使得数据库从一种正确状态转换成另一种正确状态。</li>
+<li>隔离性。在事务正确提交之前，不允许把该事务对数据的任何改变提供给任何其他事务。</li>
+<li>持久性。事务正确提交后，其结果将永久保存在数据库中，即使在事务提交后有了其他故障，事务的处理结果也会得到保存。</li>
+</ol>
+</li>
+</ol>
+<h1 id="索引"><a href="#索引" class="headerlink" title="索引"></a>索引</h1><ol>
+<li><h3 id="简述在-MySQL-数据库中-MyISAM-和-InnoDB-索引方式的区别"><a href="#简述在-MySQL-数据库中-MyISAM-和-InnoDB-索引方式的区别" class="headerlink" title="简述在 MySQL 数据库中 MyISAM 和 InnoDB 索引方式的区别"></a>简述在 MySQL 数据库中 MyISAM 和 InnoDB 索引方式的区别</h3><ol>
+<li><h4 id="MyISAM"><a href="#MyISAM" class="headerlink" title="MyISAM"></a>MyISAM</h4><ol>
+<li>不支持事务，但是每次查询都是原子的；</li>
+<li>支持表级锁，即每次操作是对整个表加锁；</li>
+<li>存储表的总行数；</li>
+<li>一个 MYISAM 表有三个文件：索引文件、表结构文件、数据文件；</li>
+<li>采用菲聚集索引，索引文件的数据域存储指向数据文件的指针。辅索引与主索引基本一致，但是辅索引不用保证唯一性。</li>
+</ol>
+</li>
+<li><h4 id="InnoDb："><a href="#InnoDb：" class="headerlink" title="InnoDb："></a>InnoDb：</h4><ol>
+<li>支持 ACID 的事务，支持事务的四种隔离级别；</li>
+<li>支持行级锁及外键约束：因此可以支持写并发；</li>
+<li>不存储总行数：</li>
+<li>一个 InnoDb 引擎存储在一个文件空间（共享表空间，表大小不受操作系统控制，一个表可能分布在多个文件里），也有可能为多个（设置为独立表空，表大小受操作系统文件大小限制，一般为 2G），受操作系统文件大小的限制；</li>
+<li>主键索引采用聚集索引（索引的数据域存储数据文件本身），辅索引的数据域存储主键的值；因此从辅索引查找数据，需要先通过辅索引找到主键值，再访问辅索引；最好使用自增主键，防止插入数据时，为维持 B+树结构，文件的大调整。</li>
+</ol>
+</li>
+</ol>
+</li>
+<li><h3 id="索引种类"><a href="#索引种类" class="headerlink" title="索引种类"></a>索引种类</h3><ol>
+<li>普通索引：仅加速查询</li>
+<li>唯一索引：加速查询 + 列值唯一（可以有null）</li>
+<li>主键索引：加速查询 + 列值唯一（不可以有null）+ 表中只有一个组合索引：多列值组成一个索引，专门用于组合搜索，其效率大于索引合并</li>
+<li>全文索引：对文本的内容进行分词，进行搜索</li>
+</ol>
+</li>
+<li><h3 id="主键、外键和索引的区别？"><a href="#主键、外键和索引的区别？" class="headerlink" title="主键、外键和索引的区别？"></a>主键、外键和索引的区别？</h3><ol>
+<li><strong>定义：</strong><br>主键——唯一标识一条记录，不能有重复的，不允许为空<br>外键——表的外键是另一表的主键, 外键可以有重复的, 可以是空值<br>索引——该字段没有重复值，但可以有一个空值</li>
+<li><strong>作用：</strong><br>主键——用来保证数据完整性<br>外键——用来和其他表建立联系用的<br>索引——是提高查询排序的速度</li>
+<li><strong>个数：</strong><br>主键—— 主键只能有一个<br>外键—— 一个表可以有多个外键<br>索引—— 一个表可以有多个唯一索引</li>
+</ol>
+</li>
+<li><h3 id="用什么语句可以看到为表格定义的所有索引？"><a href="#用什么语句可以看到为表格定义的所有索引？" class="headerlink" title="用什么语句可以看到为表格定义的所有索引？"></a>用什么语句可以看到为表格定义的所有索引？</h3><ol>
+<li>SHOW INDEX FROM <tablename>;</li>
+</ol>
+</li>
+<li><h3 id="对于关系型数据库而言，索引是相当重要的概念，请回答有关索引的几个问题："><a href="#对于关系型数据库而言，索引是相当重要的概念，请回答有关索引的几个问题：" class="headerlink" title="对于关系型数据库而言，索引是相当重要的概念，请回答有关索引的几个问题："></a>对于关系型数据库而言，索引是相当重要的概念，请回答有关索引的几个问题：</h3><ol>
+<li><h4 id="索引的目的是什么？"><a href="#索引的目的是什么？" class="headerlink" title="索引的目的是什么？"></a>索引的目的是什么？</h4>快速访问数据表中的特定信息，提高检索速度<br>创建唯一性索引，保证数据库表中每一行数据的唯一性。<br>加速表和表之间的连接<br>使用分组和排序子句进行数据检索时，可以显著减少查询中分组和排序的时间</li>
+<li><h4 id="索引对数据库系统的负面影响是什么？"><a href="#索引对数据库系统的负面影响是什么？" class="headerlink" title="索引对数据库系统的负面影响是什么？"></a>索引对数据库系统的负面影响是什么？</h4>负面影响：创建索引和维护索引需要耗费时间，这个时间随着数据量的增加而增加；索引需要占用物理空间，不光是表需要占用数据空间，每个索引也需要占用物理空间；当对表进行增、删、改、的时候索引也要动态维护，这样就降低了数据的维护速度。</li>
+<li><h4 id="为数据表建立索引的原则有哪些"><a href="#为数据表建立索引的原则有哪些" class="headerlink" title="为数据表建立索引的原则有哪些?"></a>为数据表建立索引的原则有哪些?</h4>在最频繁使用的、用以缩小查询范围的字段上建立索引。<br>在频繁使用的、需要排序的字段上建立索引</li>
+<li><h4 id="什么情况下不宜建立索引？"><a href="#什么情况下不宜建立索引？" class="headerlink" title="什么情况下不宜建立索引？"></a>什么情况下不宜建立索引？</h4>对于查询中很少涉及的列或者重复值比较多的列，不宜建立索引。<br>对于一些特殊的数据类型，不宜建立索引，比如文本字段（text）等</li>
+</ol>
+</li>
+<li><h3 id="简单描述-MySQL-中，索引，主键，唯一索引，联合索引的区别，对数据库的性能有什么影响（从读写两方面）"><a href="#简单描述-MySQL-中，索引，主键，唯一索引，联合索引的区别，对数据库的性能有什么影响（从读写两方面）" class="headerlink" title="简单描述 MySQL 中，索引，主键，唯一索引，联合索引的区别，对数据库的性能有什么影响（从读写两方面）"></a>简单描述 MySQL 中，索引，主键，唯一索引，联合索引的区别，对数据库的性能有什么影响（从读写两方面）</h3><ol>
+<li>索引是一种特殊的文件(InnoDB 数据表上的索引是表空间的一个组成部分)，它们包含着对数据表里所有记录的引用指针。</li>
+<li>普通索引(由关键字 KEY 或 INDEX 定义的索引)的唯一任务是加快对数据的访问速度。</li>
+<li>普通索引允许被索引的数据列包含重复的值。如果能确定某个数据列将只包含彼此各不相同的值，在为这个数据列创建索引的时候就应该用关键字 UNIQUE 把它定义为一个唯一索引。也就是说，唯一索引可以保证数据记录的唯一性。</li>
+<li>主键，是一种特殊的唯一索引，在一张表中只能定义一个主键索引，主键用于唯一标识一条记录，使用关键字 PRIMARY KEY 来创建。</li>
+<li>索引可以覆盖多个数据列，如像 INDEX(columnA, columnB)索引，这就是联合索引。</li>
+<li>索引可以极大的提高数据的查询速度，但是会降低插入、删除、更新表的速度，因为在执行这些写操作时，还要操作索引文件。</li>
+</ol>
+</li>
+<li><h3 id="索引的底层实现原理和优化"><a href="#索引的底层实现原理和优化" class="headerlink" title="索引的底层实现原理和优化"></a>索引的底层实现原理和优化</h3><ol>
+<li>B+树，经过优化的 B+树</li>
+<li>主要是在所有的叶子结点中增加了指向下一个叶子节点的指针，因此 InnoDB 建议为大部分表使用默认自增的主键作为主索引。</li>
+</ol>
+</li>
+<li><h3 id="什么情况下设置了索引但无法使用"><a href="#什么情况下设置了索引但无法使用" class="headerlink" title="什么情况下设置了索引但无法使用"></a>什么情况下设置了索引但无法使用</h3><ol>
+<li>以“%”开头的 LIKE 语句，模糊匹配</li>
+<li>OR 语句前后没有同时使用索引</li>
+<li>数据类型出现隐式转化（如 varchar 不加单引号的话可能会自动转换为 int 型）</li>
+</ol>
+</li>
+<li><h3 id="LIKE-声明中的％和-是什么意思？"><a href="#LIKE-声明中的％和-是什么意思？" class="headerlink" title="LIKE 声明中的％和_是什么意思？"></a>LIKE 声明中的％和_是什么意思？</h3><ol>
+<li>％对应于 0 个或更多字符，_只是 LIKE 语句中的一个字符。</li>
+</ol>
+</li>
+</ol>
+<h1 id="锁"><a href="#锁" class="headerlink" title="锁"></a>锁</h1><ol>
+<li><h3 id="什么是锁？"><a href="#什么是锁？" class="headerlink" title="什么是锁？"></a>什么是锁？</h3>数据库是一个多用户使用的共享资源。当多个用户并发地存取数据时，在数据库中就会产生多个事务同时存取同一数据的情况。若对并发操作不加控制就可能会读取和存储不正确的数据，破坏数据库的一致性。<br>加锁是实现数据库并发控制的一个非常重要的技术。当事务在对某个数据对象进行操作前，先向系统发出请求，对其加锁。加锁后事务就对该数据对象有了一定的控制，在该事务释放锁之前，其他的事务不能对此数据对象进行更新操作。</li>
+<li><h3 id="MySQL-中有哪几种锁？"><a href="#MySQL-中有哪几种锁？" class="headerlink" title="MySQL 中有哪几种锁？"></a>MySQL 中有哪几种锁？</h3><ol>
+<li>表级锁：开销小，加锁快；不会出现死锁；锁定粒度大，发生锁冲突的概率最 高，并发度最低。</li>
+<li>行级锁：开销大，加锁慢；会出现死锁；锁定粒度最小，发生锁冲突的概率最 低，并发度也最高。</li>
+<li>页面锁：开销和加锁时间界于表锁和行锁之间；会出现死锁；锁定粒度界于表 锁和行锁之间，并发度一般。</li>
+</ol>
+</li>
+</ol>
+<h1 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h1><ol>
+<li><h3 id="说说对-SQL-语句优化有哪些方法？"><a href="#说说对-SQL-语句优化有哪些方法？" class="headerlink" title="说说对 SQL 语句优化有哪些方法？"></a>说说对 SQL 语句优化有哪些方法？</h3><ol>
+<li>Where 子句中：where 表之间的连接必须写在其他 Where 条件之前，那些可以过滤掉最大数量记录的条件必须写在 Where 子句的末尾.HAVING 最后。</li>
+<li>用 EXISTS 替代 IN、用 NOT EXISTS 替代 NOT IN。</li>
+<li>避免在索引列上使用计算</li>
+<li>避免在索引列上使用 IS NULL 和 IS NOT NULL</li>
+<li>对查询进行优化，应尽量避免全表扫描，首先应考虑在 where 及 order by 涉及的列上建立索引。</li>
+<li>应尽量避免在 where 子句中对字段进行 null 值判断，否则将导致引擎放弃使用索引而进行全表扫描</li>
+<li>应尽量避免在 where 子句中对字段进行表达式操作，这将导致引擎放弃使用索引而进行全表扫描</li>
+</ol>
+</li>
+<li><h3 id="优化数据库的方法"><a href="#优化数据库的方法" class="headerlink" title="优化数据库的方法"></a>优化数据库的方法</h3><ol>
+<li>选取最适用的字段属性，尽可能减少定义字段宽度，尽量把字段设置 NOTNULL，例如’省份’、’性别’最好适用 ENUM</li>
+<li>使用连接(JOIN)来代替子查询</li>
+<li>适用联合(UNION)来代替手动创建的临时表</li>
+<li>事务处理</li>
+<li>锁定表、优化事务处理</li>
+<li>适用外键，优化锁定表</li>
+<li>建立索引</li>
+<li>优化查询语句</li>
+</ol>
+</li>
+</ol>
+<h1 id="视图"><a href="#视图" class="headerlink" title="视图"></a>视图</h1><ol>
+<li><h3 id="试述视图的优点？"><a href="#试述视图的优点？" class="headerlink" title="试述视图的优点？"></a>试述视图的优点？</h3><ol>
+<li>视图能够简化用户的操作</li>
+<li>视图使用户能以多种角度看待同一数据；</li>
+<li>视图为数据库提供了一定程度的逻辑独立性；</li>
+<li>视图能够对机密数据提供安全保护。</li>
+</ol>
+</li>
+</ol>
+<h1 id="设计"><a href="#设计" class="headerlink" title="设计"></a>设计</h1><ol>
+<li><h3 id="如何通俗地理解三个范式？"><a href="#如何通俗地理解三个范式？" class="headerlink" title="如何通俗地理解三个范式？"></a>如何通俗地理解三个范式？</h3><ol>
+<li>第一范式：1NF 是对属性的原子性约束，要求属性具有原子性，不可再分解；</li>
+<li>第二范式：2NF 是对记录的惟一性约束，要求记录有惟一标识，即实体的惟一性；</li>
+<li>第三范式：3NF 是对字段冗余性的约束，即任何字段不能由其他字段派生出来，它要求字段没有冗余。。</li>
+</ol>
+</li>
+<li><h3 id="范式化设计优缺点"><a href="#范式化设计优缺点" class="headerlink" title="范式化设计优缺点:"></a>范式化设计优缺点:</h3><ol>
+<li>优点:可以尽量得减少数据冗余，使得更新快，体积小</li>
+<li>缺点:对于查询需要多个表进行关联，减少写得效率增加读得效率，更难进行索引优化</li>
+</ol>
+</li>
+<li><h4 id="反范式化"><a href="#反范式化" class="headerlink" title="反范式化:"></a>反范式化:</h4><ol>
+<li>优点:可以减少表得关联，可以更好得进行索引优化</li>
+<li>缺点:数据冗余以及数据异常，数据得修改需要更多的成本</li>
+</ol>
+</li>
+</ol>
+<h1 id="编程方面"><a href="#编程方面" class="headerlink" title="编程方面"></a>编程方面</h1><ol>
+<li><h3 id="SQL-注入漏洞产生的原因？如何防止？"><a href="#SQL-注入漏洞产生的原因？如何防止？" class="headerlink" title="SQL 注入漏洞产生的原因？如何防止？"></a>SQL 注入漏洞产生的原因？如何防止？</h3><p>SQL 注入产生的原因：程序开发过程中不注意规范书写 sql 语句和对特殊字符进行过滤，导致客户端可以通过全局变量 POST 和 GET 提交一些 sql 语句正常执行。<br>防止 SQL 注入的方式：</p>
+<ol>
+<li>开启配置文件中的 magic_quotes_gpc 和 magic_quotes_runtime 设置</li>
+<li>执行 sql 语句时使用 addslashes 进行 sql 语句转换</li>
+<li>Sql 语句书写尽量不要省略双引号和单引号。</li>
+<li>过滤掉 sql 语句中的一些关键词：update、insert、delete、select、 * 。</li>
+<li>提高数据库表和字段的命名技巧，对一些重要的字段根据程序的特点命名，取不易被猜到的。</li>
+</ol>
+</li>
+</ol>
+ 
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+          
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.idream68.top/2021/04/28/database/mysql/mysql-Interview-questions/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mysql/" rel="tag">mysql</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%9D%A2%E8%AF%95%E9%A2%98/" rel="tag">面试题</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2021/04/28/database/mysql/mysql-lock-overview/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            mysql锁概述
+          
+        </div>
+      </a>
+    
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "WBAKYWjpwseQlCCCbVA2hN2j-MdYXbMMI",
+    app_key: "1wXEOnVKMoNjeeM195vDMQch",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "给我的文章加点评论吧~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+   
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2021-2022
+        <i class="ri-heart-fill heart_icon"></i> zjhan
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Dream"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" target="_blank" rel="noopener" href="https://500px.com.cn/idream68">摄影</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+ 
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+ 
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: ".tocbot",
+    contentSelector: ".article-entry",
+    headingSelector: "h1, h2, h3, h4, h5, h6",
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: "main",
+    positionFixedSelector: ".tocbot",
+    positionFixedClass: "is-position-fixed",
+    fixedSidebarOffset: "auto",
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+ <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script> 
+<!-- MathJax -->
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+ 
+<link rel="stylesheet" href="/css/clipboard.css">
+ <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+ 
+<!-- CanvasBackground -->
+ 
+<script src="/js/dz.js"></script>
+ 
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ theme: "simple" });
+  }
+</script>
+
+
+    
+  </div>
+</body>
+
+</html>

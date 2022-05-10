@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+  
+
+    <head>
+      <meta charset="utf-8" />
+        
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1"
+      />
+      <title>java cas 详解 |  Dream</title>
+  <meta name="generator" content="hexo-theme-ayer">
+      
+      <link rel="shortcut icon" href="/favicon.ico" />
+       
+<link rel="stylesheet" href="/dist/main.css">
+
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css"
+      />
+      
+<link rel="stylesheet" href="/css/custom.css">
+ 
+      <script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+       
+ 
+
+      <!-- mermaid -->
+      
+      <script src="https://cdn.jsdelivr.net/npm/mermaid@8.9.2/dist/mermaid.min.js"></script>
+      
+    <link rel="alternate" href="/atom.xml" title="Dream" type="application/atom+xml">
+</head>
+  </html>
+</html>
+
+
+<body>
+  <div id="app">
+    
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-java/multiThread/java-cas"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  java cas 详解
+</h1>
+ 
+
+      
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2021/05/19/java/multiThread/java-cas/" class="article-date">
+  <time datetime="2021-05-19T08:28:19.000Z" itemprop="datePublished">2021-05-19</time>
+</a> 
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/java/">java</a>
+  </div>
+  
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">3.9k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">15 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>日常编码过程中，基本不会直接用到 CAS 操作，都是通过一些JDK 封装好的并发工具类来使用的，在 java.util.concurrent 包下。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 类的成员变量</span></span><br><span class="line"><span class="keyword">static</span> <span class="type">int</span> <span class="variable">data</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"><span class="comment">// main方法内代码</span></span><br><span class="line">IntStream.range(<span class="number">0</span>, <span class="number">2</span>).forEach((i) -&gt; &#123;</span><br><span class="line">		<span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">				<span class="keyword">try</span> &#123;</span><br><span class="line">						Thread.sleep(<span class="number">20</span>);</span><br><span class="line">				&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">						e.printStackTrace();</span><br><span class="line">				&#125;</span><br><span class="line">				IntStream.range(<span class="number">0</span>, <span class="number">100</span>).forEach(y -&gt; &#123;</span><br><span class="line">						data++;</span><br><span class="line">				&#125;);</span><br><span class="line">		&#125;).start();</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">			Thread.sleep(<span class="number">2000</span>);</span><br><span class="line">	&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">			e.printStackTrace();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">System.out.println(data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结合图示理解：</p>
+<p><img src="/images/java-cas/java-cas-1.jpg" alt="image"></p>
+<p>上述代码，问题很明显，data 是类中的成员变量，int 类型，即共享的资源。当多个线程同时<br>执行 <code>data++</code> 操作时，结果可能不等于 200，为了模拟出效果，线程中 sleep 了 20 毫秒，让线程就绪，代码运行多次，结果都不是 200 。</p>
+<h4 id="如何保障线程安全"><a href="#如何保障线程安全" class="headerlink" title="如何保障线程安全"></a><strong>如何保障线程安全</strong></h4><p>示例代码执行结果表明了，多个线程同时操作共享变量导致了结果不准确，线程是不安全的。如何解决呢？</p>
+<p><strong>方案一：使用 synchronized 关键字</strong></p>
+<p>使用 synchronized 关键字，线程内使用同步代码块，由JVM自身的机制来保障线程的安全性。</p>
+<p>synchronized 关键代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 类中定义的Object锁对象</span></span><br><span class="line"><span class="type">Object</span> <span class="variable">lock</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Object</span>();</span><br><span class="line"> </span><br><span class="line"> <span class="comment">// synchronized 同步块 () 中使用 lock 对象锁定资源</span></span><br><span class="line">IntStream.range(<span class="number">0</span>, <span class="number">100</span>).forEach(y -&gt; &#123;</span><br><span class="line">		<span class="keyword">synchronized</span> (lock.getClass()) &#123;</span><br><span class="line">				data++;</span><br><span class="line">		&#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/java-cas/java-cas-2.jpg" alt="image"></p>
+<p><strong>方案二：使用 Lock 锁</strong></p>
+<p>高并发场景下，使用 Lock 锁要比使用 synchronized 关键字，在性能上得到极大的提高。<br>因为 Lock 底层是通过 AQS + CAS 机制来实现的。关于 AQS 机制可以参见往期文章 &lt;&lt;通过通过一个生活中的案例场景，揭开并发包底层AQS的神秘面纱&gt;&gt; 。CAS 机制会在文章中下面讲到。</p>
+<p>使用 Lock 的关键代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 类中定义成员变量  </span></span><br><span class="line"><span class="type">Lock</span> <span class="variable">lock</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ReentrantLock</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 执行 lock() 方法加锁，执行 unlock() 方法解锁</span></span><br><span class="line">IntStream.range(<span class="number">0</span>, <span class="number">100</span>).forEach(y -&gt; &#123;</span><br><span class="line">		lock.lock();</span><br><span class="line">		data++;</span><br><span class="line">		lock.unlock();</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>结合图示理解：</p>
+<p><img src="/images/java-cas/java-cas-3.jpg" alt="image"></p>
+<p><strong>方案三：使用 Atomic 原子类</strong></p>
+<p>除上面两种方案还有没有更为优雅的方案？synchronized 的使用在 JDK1.6 版本以后做了很多优化，如果并发量不大，相比 Lock 更为安全，性能也能接受，因其得益于 JVM 底层机制来保障，自动释放锁，无需硬编码方式释放锁。而使用 Lock 方式，一旦 unlock() 方法使用不规范，可能导致死锁。</p>
+<p>JDK 并发包所有的原子类如下所示：</p>
+<p><img src="/images/java-cas/java-cas-4.jpg" alt="image"></p>
+<p>使用 AtomicInteger 工具类实现代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 类中成员变量定义原子类</span></span><br><span class="line"><span class="type">AtomicInteger</span> <span class="variable">atomicData</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AtomicInteger</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 代码中原子类的使用方式</span></span><br><span class="line">IntStream.range(<span class="number">0</span>, <span class="number">2</span>).forEach((i) -&gt; &#123;</span><br><span class="line">	<span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">					Thread.sleep(<span class="number">20</span>);</span><br><span class="line">			&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">					e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">			IntStream.range(<span class="number">0</span>, <span class="number">100</span>).forEach(y -&gt; &#123;</span><br><span class="line">				  <span class="comment">// 原子类自增</span></span><br><span class="line">					atomicData.incrementAndGet();</span><br><span class="line">			&#125;);</span><br><span class="line">	&#125;).start();</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">		Thread.sleep(<span class="number">2000</span>);</span><br><span class="line">&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">		e.printStackTrace();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过 get () 方法获取结果</span></span><br><span class="line">System.out.println(atomicData.get());</span><br></pre></td></tr></table></figure>
+
+<p>结合图示理解：</p>
+<p><img src="/images/java-cas/java-cas-5.jpg" alt="image"></p>
+<p>之所以推荐使用 Atomic 原子类，因为其底层基于 CAS 乐观锁来实现的，下文会详细分析。</p>
+<p><strong>方案四：使用 LongAdder 原子类</strong></p>
+<p>LongAdder 原子类在 JDK1.8 中新增的类， 跟方案三中提到的 AtomicInteger 类似，都是在 java.util.concurrent.atomic 并发包下的。</p>
+<p>LongAdder 适合于高并发场景下，特别是写大于读的场景，相较于 AtomicInteger、AtomicLong 性能更好，代价是消耗更多的空间，以空间换时间。</p>
+<p>使用 LongAdder 工具类实现代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 类中成员变量定义的LongAdder</span></span><br><span class="line"><span class="type">LongAdder</span> <span class="variable">longAdderData</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">LongAdder</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 代码中原子类的使用方式</span></span><br><span class="line">IntStream.range(<span class="number">0</span>, <span class="number">2</span>).forEach((i) -&gt; &#123;</span><br><span class="line">		<span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">				<span class="keyword">try</span> &#123;</span><br><span class="line">						Thread.sleep(<span class="number">20</span>);</span><br><span class="line">				&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">						e.printStackTrace();</span><br><span class="line">				&#125;</span><br><span class="line">				IntStream.range(<span class="number">0</span>, <span class="number">100</span>).forEach(y -&gt; &#123;</span><br><span class="line">					  <span class="comment">// 使用 increment() 方法自增</span></span><br><span class="line">						longAdderData.increment();</span><br><span class="line">				&#125;);</span><br><span class="line">		&#125;).start();</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">		Thread.sleep(<span class="number">2000</span>);</span><br><span class="line">&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">		e.printStackTrace();</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 使用 sum() 获取结果</span></span><br><span class="line">System.out.println(longAdderData.sum());</span><br></pre></td></tr></table></figure>
+
+<p>结合图示理解：</p>
+<p><img src="/images/java-cas/java-cas-6.jpg" alt="image"></p>
+<p>但是，如果使用了 LongAdder 原子类，当然其底层也是基于 CAS 机制实现的。LongAdder 内部维护了 base 变量和 Cell[] 数组，当多线程并发写的情况下，各个线程都在写入自己的 Cell 中，LongAdder 操作后返回的是个近似准确的值，最终也会返回一个准确的值。</p>
+<p>换句话说，使用了 LongAdder 后获取的结果并不是实时的，对实时性要求高的还是建议使用其他的原子类，如 AtomicInteger 等。</p>
+<p><strong>volatile 关键字方案？</strong></p>
+<p>可能还有朋友会说，还想到另外一种方案：使用** <code>volatile</code>** 关键字啊。</p>
+<p><img src="/images/java-cas/java-cas-7.jpg" alt="image"></p>
+<p>经过验证，是不可行的，大家可以试试，就本文给出的示例代码直接执行，结果都不等于 200，说明线程仍然是不安全的。</p>
+<p>data++ 自增赋值并不是原子的，跟 Java内存模型有关。</p>
+<p>在非线程安全的图示中有标注执行线程本地，会有个内存副本，即本地的工作内存，实际执行过程会经过如下几个步骤：</p>
+<p>（1）执行线程从本地工作内存读取 data，如果有值直接获取，如果没有值，会从主内存读取，然后将其放到本地工作内存当中。</p>
+<p>（2）执行线程在本地工作内存中执行 +1 操作。</p>
+<p>（3）将 data 的值写入主内存。</p>
+<p><strong>结论：请记住！</strong></p>
+<p>一个变量简单的读取和赋值操作是原子性的，将一个变量赋值给另外一个变量不是原子性的。</p>
+<p>Java内存模型（JMM）仅仅保障了变量的基本读取和赋值操作是原子性的，其他均不会保证的。如果想要使某段代码块要求具备原子性，就需要使用 synchronized 关键字、并发包中的 Lock 锁、并发包中 Atomic 各种类型的原子类来实现，即上面我们提到的<strong>四种方案都是可行的</strong>。</p>
+<p>而 <code>volatile</code> 关键字修饰的变量，恰恰是不能保障原子性的，仅能保障可见性和有序性。</p>
+<h4 id="CAS原理剖析"><a href="#CAS原理剖析" class="headerlink" title="CAS原理剖析"></a><strong>CAS原理剖析</strong></h4><p>CAS 被认为是一种乐观锁，有乐观锁，相对应的是悲观锁。</p>
+<p>在上述示例中，我们使用了 synchronized，如果在线程竞争压力大的情况下，synchronized 内部会升级为重量级锁，此时仅能有一个线程进入代码块执行，如果这把锁始终不能释放，其他线程会一直阻塞等待下去。此时，可以认为是悲观锁。</p>
+<p>悲观锁会因线程一直阻塞导致系统上下文切换，系统的性能开销大。</p>
+<p>那么，我们可以用乐观锁来解决，所谓的乐观锁，其实就是一种思想。</p>
+<p>乐观锁，会以一种更加乐观的态度对待事情，认为自己可以操作成功。当多个线程操作同一个共享资源时，仅能有一个线程同一时间获得锁成功，在乐观锁中，其他线程发现自己无法成功获得锁，并不会像悲观锁那样阻塞线程，而是直接返回，可以去选择再次重试获得锁，也可以直接退出。</p>
+<p>CAS 正是乐观锁的核心算法实现。</p>
+<p>在示例代码的方案中都提到了 AtomicInteger、LongAdder、Lock锁底层，此外，当然还包括 java.util.concurrent.atomic 并发包下的所有原子类都是基于 CAS 来实现的。</p>
+<p>以 AtomicInteger 原子整型类为例，一起来分析下 CAS 底层实现机制。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">atomicData.incrementAndGet()</span><br></pre></td></tr></table></figure>
+
+<p>源码如下所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 提供自增易用的方法，返回增加1后的值</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="type">int</span> <span class="title function_">incrementAndGet</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> unsafe.getAndAddInt(<span class="built_in">this</span>, valueOffset, <span class="number">1</span>) + <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 额外提供的compareAndSet方法</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">compareAndSet</span><span class="params">(<span class="type">int</span> expect, <span class="type">int</span> update)</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> unsafe.compareAndSwapInt(<span class="built_in">this</span>, valueOffset, expect, update);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Unsafe 类的提供的方法</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="type">int</span> <span class="title function_">getAndAddInt</span> <span class="params">(Object o,<span class="type">long</span> offset, <span class="type">int</span> delta)</span>&#123;</span><br><span class="line">		<span class="type">int</span> v;</span><br><span class="line">		<span class="keyword">do</span> &#123;</span><br><span class="line">				v = getIntVolatile(o, offset);</span><br><span class="line">		&#125; <span class="keyword">while</span> (!weakCompareAndSetInt(o, offset, v, v + delta));</span><br><span class="line">		<span class="keyword">return</span> v;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们看到了 AtomicInteger 内部方法都是基于 Unsafe 类实现的，Unsafe 类是个跟底层硬件CPU指令通讯的复制工具类。</p>
+<p>由这段代码看到：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unsafe.compareAndSwapInt(<span class="built_in">this</span>, valueOffset, expect, update)</span><br></pre></td></tr></table></figure>
+
+<p>所谓的 CAS，其实是个简称，全称是 Compare And Swap，对比之后交换数据。<br>上面的方法，有几个重要的参数：</p>
+<p>（1）this，Unsafe 对象本身，需要通过这个类来获取 value 的内存偏移地址。</p>
+<p>（2）valueOffset，value 变量的内存偏移地址。</p>
+<p>（3）expect，期望更新的值。</p>
+<p>（4）update，要更新的最新值。</p>
+<p>如果原子变量中的 value 值等于 expect，则使用 update 值更新该值并返回 true，否则返回 false。</p>
+<p>再看如何获得 valueOffset的：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Unsafe实例</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">Unsafe</span> <span class="variable">unsafe</span> <span class="operator">=</span> Unsafe.getUnsafe();</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> valueOffset;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			  <span class="comment">// 获得value在AtomicInteger中的偏移量</span></span><br><span class="line">				valueOffset = unsafe.objectFieldOffset</span><br><span class="line">						(AtomicInteger.class.getDeclaredField(<span class="string">&quot;value&quot;</span>));</span><br><span class="line">		&#125; <span class="keyword">catch</span> (Exception ex) &#123; <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">Error</span>(ex); &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 实际变量的值</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="type">int</span> value;</span><br></pre></td></tr></table></figure>
+
+<p>这里看到了 value 实际的变量，是由 <strong>volatile</strong> 关键字修饰的，为了保证在多线程下的<strong>内存可见性</strong>。</p>
+<p>为何能通过 Unsafe.getUnsafe() 方法能获得 Unsafe 类的实例？其实因为 AtomicInteger 类也在 **rt.jar **包下面的，所以 AtomicInteger 类就是通过 <strong>Bootstrap 根类加载器</strong>进行加载的。</p>
+<p>源码如下所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@CallerSensitive</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Unsafe <span class="title function_">getUnsafe</span><span class="params">()</span> &#123;</span><br><span class="line">		<span class="type">Class</span> <span class="variable">var0</span> <span class="operator">=</span> Reflection.getCallerClass();</span><br><span class="line">		<span class="comment">// Bootstrap 类加载器是C++的，正常返回null，否则就抛异常。</span></span><br><span class="line">		<span class="keyword">if</span> (!VM.isSystemDomainLoader(var0.getClassLoader())) &#123;</span><br><span class="line">				<span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">SecurityException</span>(<span class="string">&quot;Unsafe&quot;</span>);</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> theUnsafe;</span><br><span class="line">		&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>类加载器委托关系：</p>
+<p><img src="/images/java-cas/java-cas-8.jpg" alt="image"></p>
+<h4 id="CPU如何实现原子操作"><a href="#CPU如何实现原子操作" class="headerlink" title="CPU如何实现原子操作"></a><strong>CPU如何实现原子操作</strong></h4><p>CPU 处理器速度远远大于在主内存中的，为了解决速度差异，在他们之间架设了多级缓存，如 L1、L2、L3 级别的缓存，这些缓存离CPU越近就越快，将频繁操作的数据缓存到这里，加快访问速度 ，如下图所示：</p>
+<p><img src="/images/java-cas/java-cas-9.jpg" alt="image"></p>
+<p>现在都是多核 CPU 处理器，每个 CPU 处理器内维护了一块字节的内存，每个内核内部维护着一块字节的缓存，当多线程并发读写时，就会出现缓存数据不一致的情况。</p>
+<p>此时，处理器提供：</p>
+<ul>
+<li><strong>总线锁定</strong></li>
+</ul>
+<p>当一个处理器要操作共享变量时，在 BUS 总线上发出一个 Lock 信号，其他处理就无法操作这个共享变量了。</p>
+<p>缺点很明显，总线锁定在阻塞其它处理器获取该共享变量的操作请求时，也可能会导致大量阻塞，从而增加系统的性能开销。</p>
+<ul>
+<li>**缓存锁定 **</li>
+</ul>
+<p>后来的处理器都提供了缓存锁定机制，也就说当某个处理器对缓存中的共享变量进行了操作，其他处理器会有个嗅探机制，将其他处理器的该共享变量的缓存失效，待其他线程读取时会重新从主内存中读取最新的数据，基于 MESI 缓存一致性协议来实现的。</p>
+<p>现代的处理器基本都支持和使用的缓存锁定机制。</p>
+<p><strong>注意：</strong></p>
+<p>有如下两种情况处理器不会使用缓存锁定：</p>
+<p>（1）当操作的数据跨多个缓存行，或没被缓存在处理器内部，则处理器会使用总线锁定。</p>
+<p>（2）有些处理器不支持缓存锁定，比如：Intel 486 和 Pentium 处理器也会调用总线锁定。</p>
+<h4 id="解密CAS底层指令"><a href="#解密CAS底层指令" class="headerlink" title="解密CAS底层指令"></a><strong>解密CAS底层指令</strong></h4><p>其实，掌握以上内容，对于 CAS 机制的理解相对来说算是比较清楚了。</p>
+<p>当然，如果感兴趣，也可以继续深入学习用到了哪些硬件 CPU 指令。</p>
+<p>底层硬件通过将 CAS 里的多个操作在硬件层面语义实现上，通过一条处理器指令保证了原子性操作。这些指令如下所示：</p>
+<p>（1）测试并设置（Tetst-and-Set）</p>
+<p>（2）获取并增加（Fetch-and-Increment）</p>
+<p>（3）交换（Swap）</p>
+<p>（4）比较并交换（Compare-and-Swap）</p>
+<p>（5）加载链接&#x2F;条件存储（Load-Linked&#x2F;Store-Conditional）</p>
+<p>前面三条大部分处理器已经实现，后面的两条是现代处理器当中新增加的。而且根据不同的体系结构，指令存在着明显差异。</p>
+<p>在IA64，x86 指令集中有 <strong>cmpxchg</strong> 指令完成 CAS 功能，在 sparc-TSO 也有 <strong>casa</strong> 指令实现，而在 ARM 和 PowerPC 架构下，则需要使用一对 <strong>ldrex&#x2F;strex</strong> 指令来完成 LL&#x2F;SC 的功能。在精简指令集的体系架构中，则通常是靠一对儿指令，如：<strong>load and reserve</strong> 和 **store conditional ** 实现的，在大多数处理器上 CAS 都是个非常轻量级的操作，这也是其优势所在。</p>
+<p>sun.misc.Unsafe 中 CAS 的核心方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> <span class="type">boolean</span> <span class="title function_">compareAndSwapObject</span><span class="params">(Object var1, <span class="type">long</span> var2, Object var4, Object var5)</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> <span class="type">boolean</span> <span class="title function_">compareAndSwapInt</span><span class="params">(Object var1, <span class="type">long</span> var2, <span class="type">int</span> var4, <span class="type">int</span> var5)</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> <span class="type">boolean</span> <span class="title function_">compareAndSwapLong</span><span class="params">(Object var1, <span class="type">long</span> var2, <span class="type">long</span> var4, <span class="type">long</span> var6)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>这三个方法可以对应去查看 openjdk 的 hotspot 源码：</p>
+<p>源码位置：<code>hotspot/src/share/vm/prims/unsafe.cpp</code></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> FN_PTR(f) CAST_FROM_FN_PTR(void*, &amp;f)</span></span><br><span class="line"></span><br><span class="line">&#123;CC<span class="string">&quot;compareAndSwapObject&quot;</span>, CC<span class="string">&quot;(&quot;</span>OBJ<span class="string">&quot;J&quot;</span>OBJ<span class="string">&quot;&quot;</span>OBJ<span class="string">&quot;)Z&quot;</span>,  <span class="built_in">FN_PTR</span>(Unsafe_CompareAndSwapObject)&#125;,</span><br><span class="line"></span><br><span class="line">&#123;CC<span class="string">&quot;compareAndSwapInt&quot;</span>,  CC<span class="string">&quot;(&quot;</span>OBJ<span class="string">&quot;J&quot;</span><span class="string">&quot;I&quot;</span><span class="string">&quot;I&quot;</span><span class="string">&quot;)Z&quot;</span>,      <span class="built_in">FN_PTR</span>(Unsafe_CompareAndSwapInt)&#125;,</span><br><span class="line"></span><br><span class="line">&#123;CC<span class="string">&quot;compareAndSwapLong&quot;</span>, CC<span class="string">&quot;(&quot;</span>OBJ<span class="string">&quot;J&quot;</span><span class="string">&quot;J&quot;</span><span class="string">&quot;J&quot;</span><span class="string">&quot;)Z&quot;</span>,      <span class="built_in">FN_PTR</span>(Unsafe_CompareAndSwapLong)&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>上述三个方法，最终在 hotspot 源码实现中都会调用统一的 cmpxchg 函数，可以在 hotspot 源码中找到核心代码。</p>
+<p>源码地址：<code>hotspot/src/share/vm/runtime/Atomic.cpp</code></p>
+<p><strong>cmpxchg 函数源码：</strong></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">jbyte <span class="title">Atomic::cmpxchg</span><span class="params">(jbyte exchange_value, <span class="keyword">volatile</span> jbyte*dest, jbyte compare_value)</span> </span>&#123;</span><br><span class="line">		 <span class="built_in">assert</span> (<span class="built_in">sizeof</span>(jbyte) == <span class="number">1</span>,<span class="string">&quot;assumption.&quot;</span>);</span><br><span class="line">		 <span class="type">uintptr_t</span> dest_addr = (<span class="type">uintptr_t</span>) dest;</span><br><span class="line">		 <span class="type">uintptr_t</span> offset = dest_addr % <span class="built_in">sizeof</span>(jint);</span><br><span class="line">		 <span class="keyword">volatile</span> jint*dest_int = ( <span class="keyword">volatile</span> jint*)(dest_addr - offset);</span><br><span class="line">		 <span class="comment">// 对象当前值</span></span><br><span class="line">		 jint cur = *dest_int;</span><br><span class="line">		 <span class="comment">// 当前值cur的地址</span></span><br><span class="line">		 jbyte * cur_as_bytes = (jbyte *) ( &amp; cur);</span><br><span class="line">		 <span class="comment">// new_val地址</span></span><br><span class="line">		 jint new_val = cur;</span><br><span class="line">		 jbyte * new_val_as_bytes = (jbyte *) ( &amp; new_val);</span><br><span class="line">		  <span class="comment">// new_val存exchange_value，后面修改则直接从new_val中取值</span></span><br><span class="line">		 new_val_as_bytes[offset] = exchange_value;</span><br><span class="line">		 <span class="comment">// 比较当前值与期望值，如果相同则更新，不同则直接返回</span></span><br><span class="line">		 <span class="keyword">while</span> (cur_as_bytes[offset] == compare_value) &#123;</span><br><span class="line">		  <span class="comment">// 调用汇编指令cmpxchg执行CAS操作，期望值为cur，更新值为new_val</span></span><br><span class="line">			 jint res = <span class="built_in">cmpxchg</span>(new_val, dest_int, cur);</span><br><span class="line">			 <span class="keyword">if</span> (res == cur) <span class="keyword">break</span>;</span><br><span class="line">			 cur = res;</span><br><span class="line">			 new_val = cur;</span><br><span class="line">			 new_val_as_bytes[offset] = exchange_value;</span><br><span class="line">		 &#125;</span><br><span class="line">		 <span class="comment">// 返回当前值</span></span><br><span class="line">		 <span class="keyword">return</span> cur_as_bytes[offset];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>源码中具体变量添加了注释，因为都是 C++ 代码，所以作为了解即可 ~</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jint res = <span class="built_in">cmpxchg</span>(new_val, dest_int, cur);</span><br></pre></td></tr></table></figure>
+
+<p>这里就是调用了汇编指令 cmpxchg 了，其中也是包含了三个参数，跟CAS上的参数能对应上。</p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a><strong>总结</strong></h4><p>任何技术都要找到适合的场景，都不是万能的，CAS 机制也一样，也有副作用。</p>
+<p><strong>问题1：</strong></p>
+<p>作为乐观锁的一种实现，当多线程竞争资源激烈的情况下，而且锁定的资源处理耗时，那么其他线程就要考虑自旋的次数限制，避免过度的消耗 CPU。</p>
+<p>另外，可以考虑上文示例代码中提到的 LongAdder 来解决，LongAdder 以空间换时间的方式，来解决 CAS 大量失败后长时间占用 CPU 资源，加大了系统性能开销的问题。</p>
+<p><strong>问题2：</strong></p>
+<p><strong>A–&gt;B—&gt;A</strong> 问题，假设有一个变量 A ，修改为B，然后又修改为了 A，实际已经修改过了，但 CAS 可能无法感知，造成了不合理的值修改操作。</p>
+<p>整数类型还好，如果是对象引用类型，包含了多个变量，那怎么办？加个版本号或时间戳呗，没问题！</p>
+<p>JDK 中 java.util.concurrent.atomic 并发包下，提供了 <strong>AtomicStampedReference</strong>，通过为引用建立个 Stamp 类似版本号的方式，确保 CAS 操作的正确性。</p>
+<p>原文：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ldws/p/11970087.html">https://www.cnblogs.com/ldws/p/11970087.html</a></p>
+ 
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+          
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.idream68.top/2021/05/19/java/multiThread/java-cas/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/cas/" rel="tag">cas</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/" rel="tag">java</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2021/05/24/java/multiThread/java-multi-thread/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            java 多线程
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2021/05/17/java/container/java-linkedlist/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">java-linkedlist</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "WBAKYWjpwseQlCCCbVA2hN2j-MdYXbMMI",
+    app_key: "1wXEOnVKMoNjeeM195vDMQch",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "给我的文章加点评论吧~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+   
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2021-2022
+        <i class="ri-heart-fill heart_icon"></i> zjhan
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Dream"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" target="_blank" rel="noopener" href="https://500px.com.cn/idream68">摄影</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+ 
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+ 
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: ".tocbot",
+    contentSelector: ".article-entry",
+    headingSelector: "h1, h2, h3, h4, h5, h6",
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: "main",
+    positionFixedSelector: ".tocbot",
+    positionFixedClass: "is-position-fixed",
+    fixedSidebarOffset: "auto",
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+ <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script> 
+<!-- MathJax -->
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+ 
+<link rel="stylesheet" href="/css/clipboard.css">
+ <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+ 
+<!-- CanvasBackground -->
+ 
+<script src="/js/dz.js"></script>
+ 
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ theme: "simple" });
+  }
+</script>
+
+
+    
+  </div>
+</body>
+
+</html>

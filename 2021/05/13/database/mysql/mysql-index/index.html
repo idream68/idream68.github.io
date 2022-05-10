@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+  
+
+    <head>
+      <meta charset="utf-8" />
+        
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1"
+      />
+      <title>mysql 索引 |  Dream</title>
+  <meta name="generator" content="hexo-theme-ayer">
+      
+      <link rel="shortcut icon" href="/favicon.ico" />
+       
+<link rel="stylesheet" href="/dist/main.css">
+
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css"
+      />
+      
+<link rel="stylesheet" href="/css/custom.css">
+ 
+      <script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+       
+ 
+
+      <!-- mermaid -->
+      
+      <script src="https://cdn.jsdelivr.net/npm/mermaid@8.9.2/dist/mermaid.min.js"></script>
+      
+    <link rel="alternate" href="/atom.xml" title="Dream" type="application/atom+xml">
+</head>
+  </html>
+</html>
+
+
+<body>
+  <div id="app">
+    
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-database/mysql/mysql-index"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  mysql 索引
+</h1>
+ 
+
+      
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2021/05/13/database/mysql/mysql-index/" class="article-date">
+  <time datetime="2021-05-13T03:54:26.000Z" itemprop="datePublished">2021-05-13</time>
+</a> 
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/database/">database</a> / <a class="article-category-link" href="/categories/database/mysql/">mysql</a>
+  </div>
+  
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">8.1k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">29 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <p>作者：EnjoyMoving<br>链接：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/29118331">网页链接</a><br>来源：知乎</p>
+<p>著作权归作者所有</p>
+<p><img src="/images/mysql-index/mysql-index-1.jpg" alt="image"></p>
+<h1 id="索引的优缺点"><a href="#索引的优缺点" class="headerlink" title="索引的优缺点"></a>索引的优缺点</h1><h2 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h2><ul>
+<li>索引大大减小了服务器需要扫描的数据量</li>
+<li>索引可以帮助服务器避免排序和临时表</li>
+<li>索引可以将随机IO变成顺序IO</li>
+<li>索引对于InnoDB（对索引支持行级锁）非常重要，因为它可以让查询锁更少的元组。在MySQL5.1和更新的版本中，InnoDB可以在服务器端过滤掉行后就释放锁，但在早期的MySQL版本中，InnoDB直到事务提交时才会解锁。对不需要的元组的加锁，会增加锁的开销，降低并发性。 InnoDB仅对需要访问的元组加锁，而索引能够减少InnoDB访问的元组数。但是只有在存储引擎层过滤掉那些不需要的数据才能达到这种目的。一旦索引不允许InnoDB那样做（即索引达不到过滤的目的），MySQL服务器只能对InnoDB返回的数据进行WHERE操作，此时，已经无法避免对那些元组加锁了。如果查询不能使用索引，MySQL会进行全表扫描，并锁住每一个元组，不管是否真正需要。</li>
+<li>关于InnoDB、索引和锁：InnoDB在二级索引上使用共享锁（读锁），但访问主键索引需要排他锁（写锁）<h2 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h2></li>
+<li>虽然索引大大提高了查询速度，同时却会降低更新表的速度，如对表进行INSERT、UPDATE和DELETE。因为更新表时，MySQL不仅要保存数据，还要保存索引文件。</li>
+<li>建立索引会占用磁盘空间的索引文件。一般情况这个问题不太严重，但如果你在一个大表上创建了多种组合索引，索引文件的会膨胀很快。</li>
+<li>如果某个数据列包含许多重复的内容，为它建立索引就没有太大的实际效果。</li>
+<li>对于非常小的表，大部分情况下简单的全表扫描更高效；<br>索引只是提高效率的一个因素，如果你的MySQL有大数据量的表，就需要花时间研究建立最优秀的索引，或优化查询语句。<br>因此应该只为最经常查询和最经常排序的数据列建立索引。<br>MySQL里同一个数据表里的索引总数限制为16个。</li>
+</ul>
+<h1 id="索引存储类型"><a href="#索引存储类型" class="headerlink" title="索引存储类型"></a>索引存储类型</h1><h2 id="B-Tree索引"><a href="#B-Tree索引" class="headerlink" title="B-Tree索引"></a>B-Tree索引</h2><p>InnoDB使用的是B+Tree。<br>B+Tree：每一个叶子节点都包含指向下一个叶子节点的指针，从而方便叶子节点的范围遍历。<br>B-Tree通常意味着所有的值都是按顺序存储的，并且每一个叶子页到根的距离相同，很适合查找范围数据。<br>B-Tree可以对&lt;，&lt;&#x3D;，&#x3D;，&gt;，&gt;&#x3D;，BETWEEN，IN，以及不以通配符开始的LIKE使用索引。</p>
+<h3 id="索引查询"><a href="#索引查询" class="headerlink" title="索引查询"></a>索引查询</h3><p>可以利用B-Tree索引进行全关键字、关键字范围和关键字前缀查询，但必须保证按索引的最左边前缀(leftmost prefix of the index)来进行查询<br><img src="/images/mysql-index/mysql-index-2.jpg" alt="image"><br>假设有如下一个表：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> People (</span><br><span class="line">  last_name <span class="type">varchar</span>(<span class="number">50</span>) <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">  first_name <span class="type">varchar</span>(<span class="number">50</span>) <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">  dob <span class="type">date</span> <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">  gender enum(<span class="string">&#x27;m&#x27;</span>, <span class="string">&#x27;f&#x27;</span>) <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">  key(last_name, first_name, dob)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>其组合索引包含表中每一行的last_name、first_name和dob列。其结构大致如下：<br><img src="/images/mysql-index/mysql-index-3.jpg" alt="image"><br>按索引的最左边前缀(leftmost prefix of the index)来进行查询：</p>
+<ol>
+<li><p>查询必须从索引的最左边的列开始，否则无法使用索引。例如，你不能直接利用索引查找在某一天出生的人。</p>
+</li>
+<li><p>不能跳过某一索引列。例如，你不能利用索引查找last name为Smith且出生于某一天的人。</p>
+</li>
+<li><p>存储引擎不能使用索引中范围条件右边的列。例如，如果你的查询语句为WHERE last_name&#x3D;”Smith” AND first_name LIKE ‘J%’ AND dob&#x3D;’1976-12-23’，则该查询只会使用索引中的前两列，因为LIKE是范围查询。</p>
+</li>
+<li><p>匹配全值(Match the full value)：对索引中的所有列都指定具体的值。例如，上图中索引可以帮助你查找出生于1960-01-01的Cuba Allen。</p>
+</li>
+<li><p>匹配最左前缀(Match a leftmost prefix)：你可以利用索引查找last name为Allen的人，仅仅使用索引中的第1列。</p>
+</li>
+<li><p>匹配列前缀(Match a column prefix)：例如，你可以利用索引查找last name以J开始的人，这仅仅使用索引中的第1列。</p>
+</li>
+<li><p>匹配值的范围查询(Match a range of values)：可以利用索引查找last name在Allen和Barrymore之间的人，仅仅使用索引中第1列。</p>
+</li>
+<li><p>匹配部分精确而其它部分进行范围匹配(Match one part exactly and match a range on another part)：可以利用索引查找last name为Allen，而first name以字母K开始的人。</p>
+</li>
+<li><p>仅对索引进行查询(Index-only queries)：如果查询的列都位于索引中，则不需要再多一次I&#x2F;O回读元组。(覆盖索引：索引的叶子节点中已经包含要查询的数据，那么就没有必要再回表查询了，如果索引包含满足查询的所有数据，就称为覆盖索引。)</p>
+</li>
+</ol>
+<h3 id="索引排序"><a href="#索引排序" class="headerlink" title="索引排序"></a>索引排序</h3><p>也可以利用B-Tree索引进行索引排序（对查询结果进行ORDER BY），必须保证ORDER BY按索引的最左边前缀(leftmost prefix of the index)来进行。</p>
+<p>MySQL中，有两种方式生成有序结果集：</p>
+<ul>
+<li>使用filesort</li>
+<li>按索引顺序扫描</li>
+</ul>
+<p>如果explain出来的type列的值为“index”，则说明MYSQL使用了索引扫描来做排序。</p>
+<h4 id="按索引顺序扫描："><a href="#按索引顺序扫描：" class="headerlink" title="按索引顺序扫描："></a>按索引顺序扫描：</h4><p>可以利用同一索引同时进行查找和排序操作：</p>
+<ul>
+<li>当索引的顺序与ORDER BY中的列顺序相同，且所有的列是同一方向（全部升序或者全部降序）时，可以使用索引来排序。</li>
+<li>ORDER BY子句和查询型子句的限制是一样的：需要满足索引的最左前缀的要求，有一种情况下ORDER BY子句可以不满足索引的最左前缀要求，那就是前导列为常量时：WHERE子句或者JOIN子句中对前导列指定了常量。</li>
+</ul>
+<p><img src="/images/mysql-index/mysql-index-4.png" alt="image"></p>
+<ul>
+<li>如果查询是连接多个表，仅当ORDER BY中的所有列都是第一个表的列时才会使用索引。其它情况都会使用filesort文件排序。</li>
+</ul>
+<h4 id="使用filesort："><a href="#使用filesort：" class="headerlink" title="使用filesort："></a>使用filesort：</h4><p>当MySQL不能使用索引进行排序时，就会利用自己的排序算法(快速排序算法)在内存(sort buffer)中对数据进行排序；</p>
+<p>如果内存装载不下，它会将磁盘上的数据进行分块，再对各个数据块进行排序，然后将各个块合并成有序的结果集（实际上就是外排序，使用临时表）。</p>
+<p>对于filesort，MySQL有两种排序算法：</p>
+<ul>
+<li><h5 id="两次扫描算法-Two-passes"><a href="#两次扫描算法-Two-passes" class="headerlink" title="两次扫描算法(Two passes)"></a>两次扫描算法(Two passes)</h5><p> 先将需要排序的字段和可以直接定位到相关行数据的指针信息取出，然后在设定的内存（通过参数sort_buffer_size设定）中进行排序，完成排序之后再次通过行指针信息取出所需的Columns。<br> 该算法是MySQL4.1之前采用的算法，它需要两次访问数据，尤其是第二次读取操作会导致大量的随机I&#x2F;O操作。另一方面，内存开销较小。</p>
+</li>
+<li><h5 id="一次扫描算法-single-pass"><a href="#一次扫描算法-single-pass" class="headerlink" title="一次扫描算法(single pass)"></a>一次扫描算法(single pass)</h5><p> 该算法一次性将所需的Columns全部取出，在内存中排序后直接将结果输出。<br> 从MySQL4.1版本开始使用该算法。它减少了I&#x2F;O的次数，效率较高，但是内存开销也较大。如果我们将并不需要的Columns也取出来，就会极大地浪费排序过程所需要的内存。<br> 在 MySQL 4.1 之后的版本中，可以通过设置 max_length_for_sort_data 参数来控制 MySQL 选择第一种排序算法还是第二种：当取出的所有大字段总大小大于 max_length_for_sort_data 的设置时，MySQL 就会选择使用第一种排序算法，反之，则会选择第二种。<br> 当对连接操作进行排序时，如果ORDER BY仅仅引用第一个表的列，MySQL对该表进行filesort操作，然后进行连接处理，此时，EXPLAIN输出“Using filesort”；否则，MySQL必须将查询的结果集生成一个临时表，在连接完成之后进行filesort操作，此时，EXPLAIN输出“Using temporary;Using filesort”。<br> 为了尽可能地提高排序性能，我们自然更希望使用第二种排序算法，所以在 Query 中仅仅取出需要的 Columns 是非常有必要的。</p>
+</li>
+</ul>
+<h2 id="聚簇索引-cluster-index"><a href="#聚簇索引-cluster-index" class="headerlink" title="聚簇索引(cluster index)"></a>聚簇索引(cluster index)</h2><p>一个表只能有一个聚簇索引。</p>
+<p>目前，只有solidDB和InnoDB支持聚簇索引，MyISAM不支持聚簇索引。一些DBMS允许用户指定聚簇索引，但是MySQL的存储引擎到目前为止都不支持。</p>
+<h3 id="InnoDB的聚簇索引："><a href="#InnoDB的聚簇索引：" class="headerlink" title="InnoDB的聚簇索引："></a>InnoDB的聚簇索引：</h3><ol>
+<li>InnoDB对主键建立聚簇索引。</li>
+<li>如果你不指定主键，InnoDB会用一个具有唯一且非空值的索引来代替。</li>
+<li>如果不存在这样的索引，InnoDB会定义一个隐藏的主键，然后对其建立聚簇索引。</li>
+</ol>
+<p>InnoDB默认使用聚簇索引来组织数据，如果你用InnoDB，而且不需要特殊的聚簇索引，一个好的做法就是使用代理主键(surrogate key)——独立于你的应用中的数据。最简单的做法就是使用一个AUTO_INCREMENT的列，这会保证记录按照顺序插入，而且能提高使用primary key进行连接的查询的性能。应该尽量避免随机的聚簇主键，例如字符串主键就是一个不好的选择，它使得插入操作变得随机。</p>
+<p>一般来说，DBMS都会以聚簇索引的形式来存储实际的数据，它是其它二级索引的基础：</p>
+<ul>
+<li>聚簇索引（primary索引）：主键索引</li>
+<li>非聚簇索引（second索引）：二级索引</li>
+</ul>
+<h3 id="聚簇索引结构："><a href="#聚簇索引结构：" class="headerlink" title="聚簇索引结构："></a>聚簇索引结构：</h3><p>聚簇索引的结构大致如下：</p>
+<p>聚簇索引：节点页只包含了索引列，叶子页包含了行的全部数据。聚簇索引“就是表”，因此可以不需要独立的行存储。<br>聚簇索引保证关键字的值相近的元组存储的物理位置也相近（所以字符串类型不宜建立聚簇索引，特别是随机字符串，会使得系统进行大量的移动操作）。</p>
+<p><img src="/images/mysql-index/mysql-index-5.jpg" alt="image"></p>
+<p>二级索引：叶子节点保存的不是指行的物理位置的指针，而是行的主键值。<br>这意味着通过二级索引查找行，存储引擎需要：</p>
+<ol>
+<li>找到二级索引的叶子节点获取对应的主键值，</li>
+<li>根据这个主键值去聚簇索引中查找到对应的行。这里需要两次B-Tree查找而不是一次。</li>
+</ol>
+<p>覆盖索引对于InnoDB表尤其有用，因为InnoDB使用聚簇索引组织数据，如果二级索引中包含查询所需的数据，就不再需要在聚集索引中查找了。</p>
+<p><strong>聚簇索引（InnoDB）和二级索引（MyISAM）数据布局比较：</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> layout_test (</span><br><span class="line">  col1 <span class="type">int</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  col2 <span class="type">int</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY(col1),</span><br><span class="line">  KEY(col2)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>MyISAM</strong></li>
+</ul>
+<p>MyISAM按照插入的顺序在磁盘上存储数据：</p>
+<p>左边为行号(row number)，从0开始。因为元组的大小固定，所以MyISAM可以很容易的从表的开始位置找到某一字节的位置。</p>
+<p><img src="/images/mysql-index/mysql-index-6.png" alt="image"></p>
+<p>MyISAM建立的索引结构大致如下：</p>
+<p>col1主键索引：</p>
+<p>MyISAM不支持聚簇索引，索引中每一个叶子节点仅仅包含行号(row number)，且叶子节点按照col1的顺序存储。</p>
+<p><img src="/images/mysql-index/mysql-index-7.jpg" alt="image"></p>
+<p>col2非主键索引：</p>
+<p>在MyISAM中，primary key和其它索引没有什么区别。Primary key仅仅只是一个叫做PRIMARY的唯一，非空的索引而已，叶子节点按照col2的顺序存储。</p>
+<p><img src="/images/mysql-index/mysql-index-8.jpg" alt="image"></p>
+<ul>
+<li><strong>InnoDB</strong></li>
+</ul>
+<p>col1主键索引，即聚簇索引：</p>
+<p>聚簇索引中的每个叶子节点包含主键的值，事务ID，用于事务和MVCC的回滚指针，和余下的列(如col2)。</p>
+<p><img src="/images/mysql-index/mysql-index-9.jpg" alt="image"></p>
+<p>col2非主键索引，即二级索引：</p>
+<p>InnoDB的二级索引的叶子包含主键的值，而不是行指针(row pointers)，这样的策略减小了移动数据或者数据页面分裂时维护二级索引的开销，因为InnoDB不需要更新索引的行指针。</p>
+<p><img src="/images/mysql-index/mysql-index-10.jpg" alt="image"></p>
+<ul>
+<li><strong>聚簇索引+二级索引表 与 非聚簇索引表 的对比</strong></li>
+</ul>
+<p><img src="/images/mysql-index/mysql-index-11.jpg" alt="image"></p>
+<h2 id="Hash索引"><a href="#Hash索引" class="headerlink" title="Hash索引"></a>Hash索引</h2><p>哈希索引基于哈希表实现，只有精确索引所有列的查询才有效。</p>
+<p>对于每一行数据，存储引擎都会对所有的索引列计算一个哈希码。哈希索引将所有的哈希码存储在索引中，同时在哈希表中保存指向每个数据的指针。</p>
+<p>MySQL中，只有Memory存储引擎显示支持hash索引，是Memory表的默认索引类型，尽管Memory表也可以使用B-Tree索引。</p>
+<p>Memory存储引擎支持非唯一hash索引，这在数据库领域是罕见的：如果多个值有相同的hash code，索引把它们的行指针用链表保存到同一个hash表项中。</p>
+<p>假设创建如下一个表：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> testhash (</span><br><span class="line">  fname <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  lname <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  KEY <span class="keyword">USING</span> HASH(fname)</span><br><span class="line">) ENGINE<span class="operator">=</span>MEMORY;</span><br></pre></td></tr></table></figure>
+
+<p>包含的数据如下：</p>
+<p><img src="/images/mysql-index/mysql-index-12.jpg" alt="image"></p>
+<p>假设索引使用hash函数f( )，如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">f(&#x27;Arjen&#x27;) = 2323</span><br><span class="line">f(&#x27;Baron&#x27;) = 7437</span><br><span class="line">f(&#x27;Peter&#x27;) = 8784</span><br><span class="line">f(&#x27;Vadim&#x27;) = 2458</span><br></pre></td></tr></table></figure>
+
+<p>此时，索引的结构大概如下：</p>
+<p><img src="/images/mysql-index/mysql-index-13.png" alt="image"></p>
+<p>哈希索引中存储的是：哈希值+数据行指针</p>
+<p>当你执行 SELECT lname FROM testhash WHERE fname&#x3D;’Peter’; MySQL会计算’Peter’的hash值，然后通过它来查询索引的行指针。因为f(‘Peter’) &#x3D; 8784，MySQL会在索引中查找8784，得到指向记录3的指针。</p>
+<h3 id="Hash索引有以下一些限制："><a href="#Hash索引有以下一些限制：" class="headerlink" title="Hash索引有以下一些限制："></a>Hash索引有以下一些限制：</h3><ul>
+<li>由于索引仅包含hash code和记录指针，所以，MySQL不能通过使用索引避免读取记录，即每次使用哈希索引查询到记录指针后都要回读元祖查取数据。</li>
+<li>不能使用hash索引排序。</li>
+<li>Hash索引不支持键的部分匹配，因为是通过整个索引值来计算hash值的。</li>
+<li>Hash索引只支持等值比较，例如使用&#x3D;，IN( )和&lt;&#x3D;&gt;。对于WHERE price&gt;100并不能加速查询。</li>
+<li>访问Hash索引的速度非常快，除非有很多哈希冲突（不同的索引列值却有相同的哈希值）。当出现哈希冲突的时候，存储引擎必须遍历链表中所有的行指针，逐行进行比较，直到找到所有符合条件的行。</li>
+<li>如果哈希冲突很多的话，一些索引维护操作的代价也会很高。当从表中删除一行时，存储引擎要遍历对应哈希值的链表中的每一行，找到并删除对应行的引用，冲突越多，代价越大。</li>
+</ul>
+<p>InnoDB引擎有一个特殊的功能叫做“自适应哈希索引”，由Mysql自动管理，不需要DBA人为干预。默认情况下为开启，我们可以通过参数innodb_adaptive_hash_index来禁用此特性。</p>
+<p>当InnoDB注意到某些索引值被使用得非常频繁时，它会在内存中基于缓冲池中的B+ Tree索引上再创建一个哈希索引，这样就上B-Tree索引也具有哈希索引的一些优点，比如快速的哈希查找。</p>
+<ul>
+<li>只能用于等值比较，例如&#x3D;， &lt;&#x3D;&gt;，in ；</li>
+<li>无法用于排序</li>
+</ul>
+<p>InnoDB官方文档显示，启用自适应哈希索引后，读和写性能可以提高2倍，对于辅助索引的连接操作，性能可以提高5倍</p>
+<h2 id="空间-R-Tree-索引"><a href="#空间-R-Tree-索引" class="headerlink" title="空间(R-Tree)索引"></a>空间(R-Tree)索引</h2><p>MyISAM支持空间索引，主要用于地理空间数据类型，例如GEOMETRY。</p>
+<h2 id="全文-Full-text-索引"><a href="#全文-Full-text-索引" class="headerlink" title="全文(Full-text)索引"></a>全文(Full-text)索引</h2><p>全文索引是MyISAM的一个特殊索引类型，它查找的是文本中的关键词，主要用于全文检索。</p>
+<p>MySQL InnoDB从5.6开始已经支持全文索引，但InnoDB内部并不支持中文、日文等，因为这些语言没有分隔符。可以使用插件辅助实现中文、日文等的全文索引。详见：<a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/5.7/en/fulltext-restrictions.html">12.9.5 Full-Text Restrictions</a></p>
+<h1 id="MySQL建立索引类型"><a href="#MySQL建立索引类型" class="headerlink" title="MySQL建立索引类型"></a>MySQL建立索引类型</h1><ul>
+<li>单列索引，即一个索引只包含单个列，一个表可以有多个单列索引，但这不是组合索引。</li>
+<li>组合索引，即一个索包含多个列。</li>
+</ul>
+<p>索引是在存储引擎中实现的，而不是在服务器层中实现的。所以，每种存储引擎的索引都不一定完全相同，并不是所有的存储引擎都支持所有的索引类型。</p>
+<h2 id="普通索引"><a href="#普通索引" class="headerlink" title="普通索引"></a>普通索引</h2><p>这是最基本的索引，它没有任何限制。普通索引（由关键字KEY或INDEX定义的索引）的唯一任务是加快对数据的访问速度。因此，应该只为那些最经常出现在查询条件(WHERE column &#x3D; …)或排序条件(ORDER BY column)中的数据列创建索引。</p>
+<p>它有以下几种创建方式：</p>
+<h3 id="创建索引"><a href="#创建索引" class="headerlink" title="创建索引"></a>创建索引</h3><p>CREATE INDEX indexName ON mytable(username(length));</p>
+<p>如果是CHAR，VARCHAR类型，length可以小于字段实际长度；如果是BLOB和TEXT类型，必须指定 length，下同。</p>
+<h3 id="修改表结构"><a href="#修改表结构" class="headerlink" title="修改表结构"></a>修改表结构</h3><p>ALTER mytable ADD INDEX [indexName] ON (username(length))</p>
+<h3 id="创建表的时候直接指定"><a href="#创建表的时候直接指定" class="headerlink" title="创建表的时候直接指定"></a>创建表的时候直接指定</h3><p>CREATE TABLE mytable( ID INT NOT NULL, username VARCHAR(16) NOT NULL, INDEX [indexName] (username(length)) );</p>
+<h3 id="删除索引的语法："><a href="#删除索引的语法：" class="headerlink" title="删除索引的语法："></a>删除索引的语法：</h3><p>DROP INDEX [indexName] ON mytable;</p>
+<h2 id="唯一索引"><a href="#唯一索引" class="headerlink" title="唯一索引"></a>唯一索引</h2><p>它与前面的普通索引类似，不同的就是：普通索引允许被索引的数据列包含重复的值。而唯一索引列的值必须唯一，但允许有空值。如果是组合索引，则列值的组合必须唯一。</p>
+<p>它有以下几种创建方式：</p>
+<h3 id="创建索引-1"><a href="#创建索引-1" class="headerlink" title="创建索引"></a>创建索引</h3><p>CREATE UNIQUE INDEX indexName ON mytable(username(length))</p>
+<h3 id="修改表结构-1"><a href="#修改表结构-1" class="headerlink" title="修改表结构"></a>修改表结构</h3><p>ALTER mytable ADD UNIQUE [indexName] ON (username(length))</p>
+<h3 id="创建表的时候直接指定-1"><a href="#创建表的时候直接指定-1" class="headerlink" title="创建表的时候直接指定"></a>创建表的时候直接指定</h3><p>CREATE TABLE mytable( ID INT NOT NULL, username VARCHAR(16) NOT NULL, UNIQUE [indexName] (username(length)) );</p>
+<h2 id="主键索引"><a href="#主键索引" class="headerlink" title="主键索引"></a>主键索引</h2><p>它是一种特殊的唯一索引，不允许有空值。一个表只能有一个主键。</p>
+<p>一般是在建表的时候同时创建主键索引：</p>
+<p>CREATE TABLE mytable( ID INT NOT NULL, username VARCHAR(16) NOT NULL, PRIMARY KEY(ID) ); 当然也可以用 ALTER 命令。</p>
+<p>与之类似的，外键索引</p>
+<p>如果为某个外键字段定义了一个外键约束条件，MySQL就会定义一个内部索引来帮助自己以最有效率的方式去管理和使用外键约束条件。</p>
+<h2 id="组合索引"><a href="#组合索引" class="headerlink" title="组合索引"></a>组合索引</h2><p>为了形象地对比单列索引和组合索引，为表添加多个字段：</p>
+<p>CREATE TABLE mytable( ID INT NOT NULL, username VARCHAR(16) NOT NULL, city VARCHAR(50) NOT NULL, age INT NOT NULL );</p>
+<p>为了进一步榨取MySQL的效率，就要考虑建立组合索引。就是将 name, city, age建到一个索引里：</p>
+<p>ALTER TABLE mytable ADD INDEX name_city_age (name(10),city,age);</p>
+<p>建表时，usernname长度为 16，这里用 10。这是因为一般情况下名字的长度不会超过10，这样会加速索引查询速度，还会减少索引文件的大小，提高INSERT的更新速度。</p>
+<p>建立这样的组合索引，其实是相当于分别建立了下面三组组合索引：</p>
+<p>usernname,city,age</p>
+<p>usernname,city</p>
+<p>usernname</p>
+<p>为什么没有 city，age这样的组合索引呢？这是因为MySQL组合索引“最左前缀”的结果。简单的理解就是只从最左面的开始组合。并不是只要包含这三列的查询都会用到该组合索引。下面的几个SQL就会用到这个组合索引：</p>
+<p>SELECT * FROM mytable WHREE username&#x3D;”admin” AND city&#x3D;”郑州”</p>
+<p>SELECT * FROM mytable WHREE username&#x3D;”admin”</p>
+<p>而下面几个则不会用到：</p>
+<p>SELECT * FROM mytable WHREE age&#x3D;20 AND city&#x3D;”郑州”</p>
+<p>SELECT * FROM mytable WHREE city&#x3D;”郑州”</p>
+<p>如果分别在 usernname，city，age上建立单列索引，让该表有3个单列索引，查询时和上述的组合索引效率也会大不一样，远远低于我们的组合索引。因为虽然此时有了三个索引，但MySQL只能用到其中的那个它认为似乎是最有效率的单列索引。</p>
+<h1 id="建立索引的时机"><a href="#建立索引的时机" class="headerlink" title="建立索引的时机"></a>建立索引的时机</h1><p>一般来说，在WHERE和JOIN中出现的列需要建立索引，但也不完全如此，因为MySQL的B-Tree只对&lt;，&lt;&#x3D;，&#x3D;，&gt;，&gt;&#x3D;，BETWEEN，IN，以及不以通配符开始的LIKE才会使用索引。</p>
+<p>例如：</p>
+<p>SELECT t.Name FROM mytable t LEFT JOIN mytable m ON t.Name&#x3D;m.username WHERE m.age&#x3D;20 AND m.city&#x3D;’郑州’</p>
+<p>此时就需要对city和age建立索引，由于mytable表的userame也出现在了JOIN子句中，也有对它建立索引的必要。</p>
+<h1 id="正确使用索引"><a href="#正确使用索引" class="headerlink" title="正确使用索引"></a>正确使用索引</h1><p>使用（B-Tree）索引时，有以下一些技巧和注意事项：</p>
+<h2 id="索引设计："><a href="#索引设计：" class="headerlink" title="索引设计："></a>索引设计：</h2><ul>
+<li><h3 id="索引字段尽量使用数字型（简单的数据类型）"><a href="#索引字段尽量使用数字型（简单的数据类型）" class="headerlink" title="索引字段尽量使用数字型（简单的数据类型）"></a>索引字段尽量使用数字型（简单的数据类型）</h3></li>
+</ul>
+<p>若只含数值信息的字段尽量不要设计为字符型，这会降低查询和连接的性能，并会增加存储开销。这是因为引擎在处理查询和连接时会逐个比较字符串中每一个字符，而对于数字型而言只需要比较一次就够了</p>
+<ul>
+<li><h3 id="尽量不要让字段的默认值为NULL"><a href="#尽量不要让字段的默认值为NULL" class="headerlink" title="尽量不要让字段的默认值为NULL"></a>尽量不要让字段的默认值为NULL</h3></li>
+</ul>
+<p>在MySQL中，含有空值的列很难进行查询优化，因为它们使得索引、索引的统计信息以及比较运算更加复杂。</p>
+<p>索引不会包含有NULL值的列，只要列中包含有NULL值都将不会被包含在索引中，复合索引中只要有一列含有NULL值，那么这一列对于此复合索引就是无效的。</p>
+<p>所以我们在数据库设计时尽量不要让字段的默认值为NULL，应该指定列为NOT NULL，除非你想存储NULL。你应该用0、一个特殊的值或者一个空串代替空值。</p>
+<ul>
+<li><h3 id="前缀索引和索引选择性"><a href="#前缀索引和索引选择性" class="headerlink" title="前缀索引和索引选择性"></a>前缀索引和索引选择性</h3></li>
+</ul>
+<p>对串列进行索引，如果可能应该指定一个前缀长度。</p>
+<p>对于BLOB、TEXT或者很长的VARCHAR类型的列，必须使用前缀索引，因为MYSQL不允许索引这些列的完整长度。</p>
+<p>前缀索引是一种能使索引更小、更快的有效办法，但另一方面也有其缺点：MySQL无法使用前缀索引做order by和group by，也无法使用前缀索引做覆盖扫描。</p>
+<p>一般情况下某个前缀的选择性也是足够高的，足以满足查询性能。</p>
+<p>例如，如果有一个CHAR(255)的列，如果在前10个或20个字符内，多数值是惟一的，那么就不要对整个列进行索引。</p>
+<p>短索引不仅可以提高查询速度而且可以节省磁盘空间和I&#x2F;O操作。在绝大多数应用里，数据库中的字符串数据大都以各种各样的名字为主，把索引的长度设置为10~15个字符已经足以把搜索范围缩小到很少的几条数据记录了。</p>
+<p>通常可以索引开始的部分字符，这样可以大大节约索引空间，从而提高索引效率。但这样也会降低索引的选择性。</p>
+<p>索引的选择性是指，不重复的索引值（基数）和数据表中的记录总数的比值。索引的选择性越高则查询效率越高，因为选择性高的索引可以让MYSQL在查找时过滤掉更多的行。唯一索引的选择性是1，这是最好的索引选择性，性能也是最好的。</p>
+<p>决窍在于要选择足够长的前缀以保证较高的选择性，同时又不能太长（以便节约空间）。前缀应该足够长，以使得前缀索引的选择性接近于索引整个列。换句话说，前缀的“基数”应该接近于完整列的“基数”。</p>
+<p>为了决定前缀的合适长度，需要找到最常见的值的列表，然后和最常见的前缀列表进行比较。例如以下查询：</p>
+<p>select count(*) as cnt,city from sakila.city_demo group by city order by cnt desc limit 10;</p>
+<p>select count(*) as cnt,left(city,7) as perf from sakila.city_demo group by city order by cnt desc limit 10;</p>
+<p>直到这个前缀的选择性接近完整列的选择性。</p>
+<p>计算合适的前缀长度的另一个方法就是计算完整列的选择性，并使前缀的选择性接近于完整列的选择性，如下：</p>
+<p>select count(distinct city)&#x2F;count(*) from sakila.city_demo;</p>
+<p>select count(distinct left(city,7))&#x2F;count(*) from sakila.city_demo;</p>
+<ul>
+<li><h3 id="使用唯一索引"><a href="#使用唯一索引" class="headerlink" title="使用唯一索引"></a>使用唯一索引</h3></li>
+</ul>
+<p>考虑某列中值的分布。索引的列的基数越大，索引的效果越好。</p>
+<p>例如，存放出生日期的列具有不同值，很容易区分各行。而用来记录性别的列，只含有“ M” 和“F”，则对此列进行索引没有多大用处，因为不管搜索哪个值，都会得出大约一半的行。</p>
+<ul>
+<li><h3 id="使用组合索引代替多个列索引"><a href="#使用组合索引代替多个列索引" class="headerlink" title="使用组合索引代替多个列索引"></a>使用组合索引代替多个列索引</h3></li>
+</ul>
+<p>一个多列索引（组合索引）与多个列索引MySQL在解析执行上是不一样的，如果在explain中看到有索引合并（即MySQL为多个列索引合并优化），应该好好检查一下查询的表和结构是不是已经最优。</p>
+<ul>
+<li><h3 id="注意重复-x2F-冗余的索引、不使用的索引"><a href="#注意重复-x2F-冗余的索引、不使用的索引" class="headerlink" title="注意重复&#x2F;冗余的索引、不使用的索引"></a>注意重复&#x2F;冗余的索引、不使用的索引</h3></li>
+</ul>
+<p>MySQL允许在相同的列上创建多个索引，无论是有意还是无意的。大多数情况下不需要使用冗余索引。</p>
+<p>对于重复&#x2F;冗余、不使用的索引：可以直接删除这些索引。因为这些索引需要占用物理空间，并且也会影响更新表的性能。</p>
+<h2 id="索引使用："><a href="#索引使用：" class="headerlink" title="索引使用："></a>索引使用：</h2><ul>
+<li>如果对大的文本进行搜索，使用全文索引而不要用使用 like ‘%…%’</li>
+<li>like语句不要以通配符开头</li>
+</ul>
+<p>对于LIKE：在以通配符%和_开头作查询时，MySQL不会使用索引。like操作一般在全文索引中会用到（InnoDB数据表不支持全文索引）。</p>
+<p>例如下句会使用索引：</p>
+<p>SELECT * FROM mytable WHERE username like’admin%’</p>
+<p>而下句就不会使用：</p>
+<p>SELECT * FROM mytable WHEREt Name like’%admin’</p>
+<ul>
+<li>不要在列上进行运算</li>
+</ul>
+<p>索引列不能是表达式的一部分，也不是是函数的参数。</p>
+<p>例如以下两个查询无法使用索引：</p>
+<ol>
+<li>表达式： select actor_id from sakila.actor where actor_id+1&#x3D;5;</li>
+<li>函数参数：select … where TO_DAYS(CURRENT_DATE) - TO_DAYS(date_col)&lt;&#x3D;10;</li>
+</ol>
+<ul>
+<li>尽量不要使用NOT IN、&lt;&gt;、!&#x3D; 操作</li>
+</ul>
+<p>应尽量避免在 where 子句中使用!&#x3D;或&lt;&gt;操作符，否则将引擎放弃使用索引而进行全表扫描。</p>
+<p>对于not in，可以用not exists或者（外联结+判断为空）来代替；很多时候用 exists 代替 in 是一个好的选择： select num from a where num in(select num from b) 用下面的语句替换： select num from a where exists(select 1 from b where num&#x3D;a.num)</p>
+<p>对于&lt;&gt;，用其它相同功能的操作运算代替，如a&lt;&gt;0 改为 a&gt;0 or a&lt;0</p>
+<ul>
+<li>or条件</li>
+</ul>
+<p>用 or 分割开的条件， 如果 or 前的条件中的列有索引， 而后面的列中没有索引， 那么涉及到的索引都不会被用到。</p>
+<p>应尽量避免在 where 子句中使用 or 来连接条件，否则将导致引擎放弃使用索引而进行全表扫描，如： 假设num1有索引，num2没有索引，查询语句select id from t where num1&#x3D;10 or num2&#x3D;20会放弃使用索引，可以改为这样查询： select id from t where num1&#x3D;10 union all select id from t where num2&#x3D;20，这样虽然num2没有使用索引，但至少num1会使用索引，提高效率。</p>
+<ul>
+<li>组合索引的使用要遵守“最左前缀”原则’</li>
+</ul>
+<p>组合索引：当不需要考虑排序和分组时，将选择性最高的列放在前面通常是最好的。</p>
+<p>例子：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> People (</span><br><span class="line">  last_name <span class="type">varchar</span>(<span class="number">50</span>) <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">  first_name <span class="type">varchar</span>(<span class="number">50</span>) <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">  birthday <span class="type">date</span> <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">  gender enum(<span class="string">&#x27;m&#x27;</span>, <span class="string">&#x27;f&#x27;</span>) <span class="keyword">not</span> <span class="keyword">null</span>,</span><br><span class="line">  key(last_name, first_name, birthday)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>查询必须从索引的最左边的列开始，否则无法使用索引。例如，你不能直接利用索引查找在某一天出生的人。</li>
+<li>不能跳过某一索引列。例如，你不能利用索引查找last name为Smith且出生于某一天的人。</li>
+<li>存储引擎不能使用索引中范围条件右边的列。例如，如果你的查询语句为WHERE last_name&#x3D;”Smith” AND first_name LIKE ‘J%’ AND dob&#x3D;’1976-12-23’，则该查询只会使用索引中的前两列，因为LIKE是范围查询。</li>
+</ol>
+<ul>
+<li>使用索引排序时，ORDER BY也要遵守“最左前缀”原则</li>
+</ul>
+<ol>
+<li>当索引的顺序与ORDER BY中的列顺序相同，且所有的列是同一方向（全部升序或者全部降序）时，可以使用索引来排序。</li>
+<li>ORDER BY子句和查询型子句的限制是一样的：需要满足索引的最左前缀的要求，有一种情况下ORDER BY子句可以不满足索引的最左前缀要求，那就是前导列为常量时：WHERE子句或者JOIN子句中对前导列指定了常量。</li>
+<li>如果查询是连接多个表，仅当ORDER BY中的所有列都是第一个表的列时才会使用索引。其它情况都会使用filesort文件排序。</li>
+</ol>
+<p><img src="/images/mysql-index/mysql-index-14.png" alt="image"></p>
+<ul>
+<li>如果列类型是字符串，那么一定记得在 where 条件中把字符常量值用引号引起来，否则的话即便这个列上有索引，MySQL 也不会用到的，因为MySQL 默认把输入的常量值进行转换以后才进行检索。 例如：</li>
+</ul>
+<p><img src="/images/mysql-index/mysql-index-15.jpg" alt="image"></p>
+<p><img src="/images/mysql-index/mysql-index-16.jpg" alt="image"></p>
+<ul>
+<li>任何地方都不要使用 select * from t ，用具体的字段列表代替“*”，不要返回用不到的任何字段</li>
+<li>如果 MySQL 估计使用索引比全表扫描更慢，则不使用索引。当索引列有大量数据重复时,查询可能不会去利用索引，如一表中有字段sex，male、female几乎各一半，那么即使在sex上建了索引也对查询效率起不了作用。</li>
+</ul>
+<h1 id="索引性能测试与索引优化"><a href="#索引性能测试与索引优化" class="headerlink" title="索引性能测试与索引优化"></a>索引性能测试与索引优化</h1><p>只有当数据库里已经有了足够多的测试数据时，它的性能测试结果才有实际参考价值。如果在测试数据库里只有几百条数据记录，它们往往在执行完第一条查询命令之后就被全部加载到内存里，这将使后续的查询命令都执行得非常快——不管有没有使用索引。只有当数据库里的记录超过了1000条、数据总量也超过了 MySQL服务器上的内存总量时，数据库的性能测试结果才有意义。</p>
+<p>在不确定应该在哪些数据列上创建索引的时候，人们从EXPLAIN SELECT命令那里往往可以获得一些帮助。这其实只是简单地给一条普通的SELECT命令加一个EXPLAIN关键字作为前缀而已。有了这个关键字，MySQL将不是去执行那条SELECT命令，而是去对它进行分析。MySQL将以表格的形式把查询的执行过程和用到的索引(如果有的话)等信息列出来。</p>
+<h2 id="查看索引使用情况："><a href="#查看索引使用情况：" class="headerlink" title="查看索引使用情况："></a>查看索引使用情况：</h2><ul>
+<li>如果索引正在工作，Handler_read_key 的值将很高，这个值代表了一个行被索引值读的次数，很低的值表明增加索引得到的性能改善不高，因为索引并不经常使用。</li>
+<li>Handler_read_rnd_next 的值高则意味着查询运行低效，并且应该建立索引补救。这个值的含义是在数据文件中读下一行的请求数。如果正进行大量的表扫描， Handler_read_rnd_next 的值较高，则通常说明表索引不正确或写入的查询没有利用索引。</li>
+</ul>
+<p>具体如下：</p>
+<p><img src="/images/mysql-index/mysql-index-17.png" alt="image"></p>
+<p>从上面的例子中可以看出，目前使用的 MySQL 数据库的索引情况并不理想。</p>
+ 
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+          
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.idream68.top/2021/05/13/database/mysql/mysql-index/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mysql/" rel="tag">mysql</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2021/05/13/database/mysql/mysql-view/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            mysql视图
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2021/05/13/database/mysql/mysql-transaction/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">mysql 事务 MVCC</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "WBAKYWjpwseQlCCCbVA2hN2j-MdYXbMMI",
+    app_key: "1wXEOnVKMoNjeeM195vDMQch",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "给我的文章加点评论吧~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+   
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2021-2022
+        <i class="ri-heart-fill heart_icon"></i> zjhan
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Dream"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" target="_blank" rel="noopener" href="https://500px.com.cn/idream68">摄影</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+ 
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+ 
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: ".tocbot",
+    contentSelector: ".article-entry",
+    headingSelector: "h1, h2, h3, h4, h5, h6",
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: "main",
+    positionFixedSelector: ".tocbot",
+    positionFixedClass: "is-position-fixed",
+    fixedSidebarOffset: "auto",
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+ <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script> 
+<!-- MathJax -->
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+ 
+<link rel="stylesheet" href="/css/clipboard.css">
+ <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+ 
+<!-- CanvasBackground -->
+ 
+<script src="/js/dz.js"></script>
+ 
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ theme: "simple" });
+  }
+</script>
+
+
+    
+  </div>
+</body>
+
+</html>

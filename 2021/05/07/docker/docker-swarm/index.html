@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+  
+
+    <head>
+      <meta charset="utf-8" />
+        
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1"
+      />
+      <title>Docker三剑客之Docker Swarm |  Dream</title>
+  <meta name="generator" content="hexo-theme-ayer">
+      
+      <link rel="shortcut icon" href="/favicon.ico" />
+       
+<link rel="stylesheet" href="/dist/main.css">
+
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css"
+      />
+      
+<link rel="stylesheet" href="/css/custom.css">
+ 
+      <script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+       
+ 
+
+      <!-- mermaid -->
+      
+      <script src="https://cdn.jsdelivr.net/npm/mermaid@8.9.2/dist/mermaid.min.js"></script>
+      
+    <link rel="alternate" href="/atom.xml" title="Dream" type="application/atom+xml">
+</head>
+  </html>
+</html>
+
+
+<body>
+  <div id="app">
+    
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-docker/docker-swarm"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  Docker三剑客之Docker Swarm
+</h1>
+ 
+
+      
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2021/05/07/docker/docker-swarm/" class="article-date">
+  <time datetime="2021-05-07T12:17:32.000Z" itemprop="datePublished">2021-05-07</time>
+</a> 
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/docker/">docker</a>
+  </div>
+  
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">9.8k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">44 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h2 id="一、什么是Docker-Swarm"><a href="#一、什么是Docker-Swarm" class="headerlink" title="一、什么是Docker Swarm"></a>一、什么是Docker Swarm</h2><p><img src="/images/docker-swarm/docker-swarm-1.png" alt="img"></p>
+<p>　　Swarm是Docker公司推出的用来管理docker集群的平台，几乎全部用GO语言来完成的开发的，代码开源在<a target="_blank" rel="noopener" href="https://github.com/docker/swarm%EF%BC%8C">https://github.com/docker/swarm，</a> 它是将一群Docker宿主机变成一个单一的虚拟主机，Swarm使用标准的Docker API接口作为其前端的访问入口，换言之，各种形式的Docker</p>
+<p>Client(compose,docker-py等)均可以直接与Swarm通信，甚至Docker本身都可以很容易的与Swarm集成，这大大方便了用户将原本基于单节点的系统移植到Swarm上，同时Swarm内置了对Docker网络插件的支持，用户也很容易的部署跨主机的容器集群服务。</p>
+<p>　　Docker Swarm 和 Docker Compose 一样，都是 Docker 官方容器编排项目，但不同的是，Docker Compose 是一个在单个服务器或主机上创建多个容器的工具，而 Docker Swarm 则可以在多个服务器或主机上创建容器集群服务，对于微服务的部署，显然 Docker Swarm 会更加适合。</p>
+<p>从 Docker 1.12.0 版本开始，Docker Swarm 已经包含在 Docker 引擎中（docker swarm），并且已经内置了服务发现工具，我们就不需要像之前一样，再配置 Etcd 或者 Consul 来进行服务发现配置了。</p>
+<p>　　Swarm deamon只是一个调度器(Scheduler)加路由器(router),Swarm自己不运行容器，它只是接受Docker客户端发来的请求，调度适合的节点来运行容器，这就意味着，即使Swarm由于某些原因挂掉了，集群中的节点也会照常运行，放Swarm重新恢复运行之后，他会收集重建集群信息。</p>
+<h2 id="二、Docker-Swarm-基本结构图"><a href="#二、Docker-Swarm-基本结构图" class="headerlink" title="二、Docker Swarm 基本结构图"></a>二、Docker Swarm 基本结构图</h2><p><img src="/images/docker-swarm/docker-swarm-2.png" alt="img"></p>
+<p>在结构图可以看出 Docker Client使用Swarm对 集群(Cluster)进行调度使用。</p>
+<p>上图可以看出，Swarm是典型的master-slave结构，通过发现服务来选举manager。manager是中心管理节点，各个node上运行agent接受manager的统一管理，集群会自动通过Raft协议分布式选举出manager节点，无需额外的发现服务支持，避免了单点的瓶颈问题，同时也内置了DNS的负载均衡和对外部负载均衡机制的集成支持</p>
+<h2 id="三-Swarm的几个关键概念"><a href="#三-Swarm的几个关键概念" class="headerlink" title="三.Swarm的几个关键概念"></a>三.Swarm的几个关键概念</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">1.Swarm</span><br><span class="line">集群的管理和编排是使用嵌入docker引擎的SwarmKit，可以在docker初始化时启动swarm模式或者加入已存在的swarm</span><br><span class="line"> </span><br><span class="line">2.Node</span><br><span class="line">一个节点是docker引擎集群的一个实例。您还可以将其视为Docker节点。您可以在单个物理计算机或云服务器上运行一个或多个节点，但生产群集部署通常包括分布在多个物理和云计算机上的Docker节点。</span><br><span class="line">要将应用程序部署到swarm，请将服务定义提交给 管理器节点。管理器节点将称为任务的工作单元分派 给工作节点。</span><br><span class="line">Manager节点还执行维护所需群集状态所需的编排和集群管理功能。Manager节点选择单个领导者来执行编排任务。</span><br><span class="line">工作节点接收并执行从管理器节点分派的任务。默认情况下，管理器节点还将服务作为工作节点运行，但您可以将它们配置为仅运行管理器任务并且是仅管理器节点。代理程序在每个工作程序节点上运行，并报告分配给它的任务。工作节点向管理器节点通知其分配的任务的当前状态，以便管理器可以维持每个工作者的期望状态。</span><br><span class="line"> </span><br><span class="line">3.Service</span><br><span class="line">一个服务是任务的定义，管理机或工作节点上执行。它是群体系统的中心结构，是用户与群体交互的主要根源。创建服务时，你需要指定要使用的容器镜像。</span><br><span class="line"> </span><br><span class="line">4.Task</span><br><span class="line">任务是在docekr容器中执行的命令，Manager节点根据指定数量的任务副本分配任务给worker节点</span><br><span class="line"> </span><br><span class="line">------------------------------------------使用方法-------------------------------------</span><br><span class="line">docker swarm：集群管理，子命令有init, join, leave, update。（docker swarm --help查看帮助）</span><br><span class="line">docker service：服务创建，子命令有create, inspect, update, remove, tasks。（docker service--help查看帮助）</span><br><span class="line">docker node：节点管理，子命令有accept, promote, demote, inspect, update, tasks, ls, rm。（docker node --help查看帮助）</span><br><span class="line">   </span><br><span class="line">node是加入到swarm集群中的一个docker引擎实体，可以在一台物理机上运行多个node，node分为：</span><br><span class="line">manager nodes，也就是管理节点</span><br><span class="line">worker nodes，也就是工作节点</span><br><span class="line"> </span><br><span class="line">1）manager node管理节点：执行集群的管理功能，维护集群的状态，选举一个leader节点去执行调度任务。</span><br><span class="line">2）worker node工作节点：接收和执行任务。参与容器集群负载调度，仅用于承载task。</span><br><span class="line">3）service服务：一个服务是工作节点上执行任务的定义。创建一个服务，指定了容器所使用的镜像和容器运行的命令。</span><br><span class="line">   service是运行在worker nodes上的task的描述，service的描述包括使用哪个docker 镜像，以及在使用该镜像的容器中执行什么命令。</span><br><span class="line">4）task任务：一个任务包含了一个容器及其运行的命令。task是service的执行实体，task启动docker容器并在容器中执行任务。</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、Swarm的工作模式"><a href="#四、Swarm的工作模式" class="headerlink" title="四、Swarm的工作模式"></a>四、Swarm的工作模式</h2><ol>
+<li>Node</li>
+</ol>
+<p><img src="/images/docker-swarm/docker-swarm-3.png" alt="img"></p>
+<ol start="2">
+<li>Service</li>
+</ol>
+<p><img src="/images/docker-swarm/docker-swarm-4.png" alt="img"></p>
+<ol start="3">
+<li>任务与调度</li>
+</ol>
+<p><img src="/images/docker-swarm/docker-swarm-5.png" alt="img"></p>
+<ol start="4">
+<li>服务副本与全局服务</li>
+</ol>
+<p><img src="/images/docker-swarm/docker-swarm-6.png" alt="img"></p>
+<h2 id="五、Swarm的调度策略"><a href="#五、Swarm的调度策略" class="headerlink" title="五、Swarm的调度策略"></a>五、Swarm的调度策略</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Swarm在调度(scheduler)节点（leader节点）运行容器的时候，会根据指定的策略来计算最适合运行容器的节点，目前支持的策略有：spread, binpack, random.</span><br><span class="line">1）Random</span><br><span class="line">顾名思义，就是随机选择一个Node来运行容器，一般用作调试用，spread和binpack策略会根据各个节点的可用的CPU, RAM以及正在运</span><br><span class="line">行的容器的数量来计算应该运行容器的节点。</span><br><span class="line">  </span><br><span class="line">2）Spread</span><br><span class="line">在同等条件下，Spread策略会选择运行容器最少的那台节点来运行新的容器，binpack策略会选择运行容器最集中的那台机器来运行新的节点。</span><br><span class="line">使用Spread策略会使得容器会均衡的分布在集群中的各个节点上运行，一旦一个节点挂掉了只会损失少部分的容器。</span><br><span class="line">  </span><br><span class="line">3）Binpack</span><br><span class="line">Binpack策略最大化的避免容器碎片化，就是说binpack策略尽可能的把还未使用的节点留给需要更大空间的容器运行，尽可能的把容器运行在</span><br><span class="line">一个节点上面。</span><br></pre></td></tr></table></figure>
+
+<h2 id="六、Swarm-Cluster模式特性"><a href="#六、Swarm-Cluster模式特性" class="headerlink" title="六、Swarm Cluster模式特性"></a>六、Swarm Cluster模式特性</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">1）批量创建服务</span><br><span class="line">建立容器之前先创建一个overlay的网络，用来保证在不同主机上的容器网络互通的网络模式</span><br><span class="line">   </span><br><span class="line">2）强大的集群的容错性</span><br><span class="line">当容器副本中的其中某一个或某几个节点宕机后，cluster会根据自己的服务注册发现机制，以及之前设定的值--replicas n，</span><br><span class="line">在集群中剩余的空闲节点上，重新拉起容器副本。整个副本迁移的过程无需人工干预，迁移后原本的集群的load balance依旧好使！</span><br><span class="line">不难看出，docker service其实不仅仅是批量启动服务这么简单，而是在集群中定义了一种状态。Cluster会持续检测服务的健康状态</span><br><span class="line">并维护集群的高可用性。</span><br><span class="line">   </span><br><span class="line">3）服务节点的可扩展性</span><br><span class="line">Swarm Cluster不光只是提供了优秀的高可用性，同时也提供了节点弹性扩展或缩减的功能。当容器组想动态扩展时，只需通过scale</span><br><span class="line">参数即可复制出新的副本出来。</span><br><span class="line">   </span><br><span class="line">仔细观察的话，可以发现所有扩展出来的容器副本都run在原先的节点下面，如果有需求想在每台节点上都run一个相同的副本，方法</span><br><span class="line">其实很简单，只需要在命令中将&quot;--replicas n&quot;更换成&quot;--mode=global&quot;即可！</span><br><span class="line">  </span><br><span class="line">复制服务（--replicas n）</span><br><span class="line">将一系列复制任务分发至各节点当中，具体取决于您所需要的设置状态，例如“--replicas 3”。</span><br><span class="line">  </span><br><span class="line">全局服务（--mode=global）</span><br><span class="line">适用于集群内全部可用节点上的服务任务，例如“--mode global”。如果大家在 Swarm 集群中设有 7 台 Docker 节点，则全部节点之上都将存在对应容器。</span><br><span class="line">   </span><br><span class="line">4. 调度机制</span><br><span class="line">所谓的调度其主要功能是cluster的server端去选择在哪个服务器节点上创建并启动一个容器实例的动作。它是由一个装箱算法和过滤器</span><br><span class="line">组合而成。每次通过过滤器（constraint）启动容器的时候，swarm cluster 都会调用调度机制筛选出匹配约束条件的服务器，并在这上面运行容器。</span><br><span class="line">   </span><br><span class="line">------------------Swarm cluster的创建过程包含以下三个步骤----------------------</span><br><span class="line">1）发现Docker集群中的各个节点，收集节点状态、角色信息，并监视节点状态的变化</span><br><span class="line">2）初始化内部调度（scheduler）模块</span><br><span class="line">3）创建并启动API监听服务模块</span><br><span class="line">   </span><br><span class="line">一旦创建好这个cluster，就可以用命令docker service批量对集群内的容器进行操作，非常方便！</span><br><span class="line">   </span><br><span class="line">在启动容器后，docker 会根据当前每个swarm节点的负载判断，在负载最优的节点运行这个task任务，用&quot;docker service ls&quot; 和&quot;docker service ps + taskID&quot;</span><br><span class="line">可以看到任务运行在哪个节点上。容器启动后，有时需要等待一段时间才能完成容器创建。</span><br></pre></td></tr></table></figure>
+
+<h2 id="七、Dcoker-Swarm-集群部署"><a href="#七、Dcoker-Swarm-集群部署" class="headerlink" title="七、Dcoker Swarm 集群部署"></a>七、Dcoker Swarm 集群部署</h2><p>温馨提示：</p>
+<p>机器环境(三台机器，centos系统)</p>
+<p>IP：192.168.31.43 主机名：manager43 担任角色：swarm manager</p>
+<p>IP：192.168.31.188 主机名：node188 担任角色：swarm node</p>
+<p>IP：192.168.31.139 主机名：node139 担任角色：swarm node</p>
+<p>1、准备工作</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">1) 修改主机名</span><br><span class="line"># 192.168.31.43  主机上执行</span><br><span class="line">[root@manager43 ~]# hostnamectl set-hostname manager43</span><br><span class="line"> </span><br><span class="line"># 192.168.31.188 主机上执行</span><br><span class="line">[root@node188 ~]# hostnamectl set-hostname node188</span><br><span class="line"> </span><br><span class="line"># 192.168.31.139 主机上执行</span><br><span class="line">[root@node139 ~]# hostnamectl set-hostname node139</span><br><span class="line"> </span><br><span class="line">2)配置hosts文件(可配置可不配置)</span><br><span class="line">[root@manager43 ~]# cat /etc/hosts</span><br><span class="line">127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4</span><br><span class="line">::1         localhost localhost.localdomain localhost6 localhost6.localdomain6</span><br><span class="line"> </span><br><span class="line">192.168.31.43 manager43</span><br><span class="line">192.168.31.188 node188</span><br><span class="line">192.168.31.139 node139</span><br><span class="line"> </span><br><span class="line"># 使用scp复制到node主机</span><br><span class="line">[root@manager43 ~]# scp /etc/hosts root@192.168.31.188:/etc/hosts</span><br><span class="line">[root@manager43 ~]# scp /etc/hosts root@192.168.31.139:/etc/hosts</span><br><span class="line"> </span><br><span class="line">3) 设置防火墙</span><br><span class="line">关闭三台机器上的防火墙。如果开启防火墙，则需要在所有节点的防火墙上依次放行2377/tcp（管理端口）、7946/udp（节点间通信端口）、4789/udp（overlay 网络端口）端口。</span><br><span class="line">[root@manager43 ~]# systemctl disable firewalld.service</span><br><span class="line">[root@manager43 ~]# systemctl stop firewalld.service</span><br><span class="line"> </span><br><span class="line">4) 安装docker并配置加速器(在三台主机都要安装哟...)</span><br><span class="line">[root@manager43 ~]# yum -y install docker</span><br><span class="line">[root@node188 ~]# yum -y install docker</span><br><span class="line">[root@node139 ~]# yum -y install docker</span><br></pre></td></tr></table></figure>
+
+<p>也可以安装最新版docker，可查考：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/zhujingzhi/p/9656298.html">docker安装教程</a></p>
+<p>加速器配置，可查考:<a target="_blank" rel="noopener" href="https://www.cnblogs.com/brianzhu/p/8565411.html">docker加速器配置教程</a></p>
+<p>2、创建Swarm并添加节点</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line">1) 创建Swarm集群</span><br><span class="line">[root@manager43 ~]# docker swarm init --advertise-addr 192.168.31.43</span><br><span class="line">Swarm initialized: current node (z2n633mty5py7u9wyl423qnq0) is now a manager.</span><br><span class="line"> </span><br><span class="line">To add a worker to this swarm, run the following command:</span><br><span class="line"> </span><br><span class="line">    # 这就是添加节点的方式(要保存初始化后token，因为在节点加入时要使用token作为通讯的密钥)</span><br><span class="line">    docker swarm join --token SWMTKN-1-2lefzq18zohy9yr1vskutf1sfb2a590xz9d0mjj2m15zu9eprw-2938j5f50t35ycut0vbj2sx0s 192.168.31.43:2377  </span><br><span class="line"> </span><br><span class="line">To add a manager to this swarm, run &#x27;docker swarm join-token manager&#x27; and follow the instructions.</span><br><span class="line"> </span><br><span class="line">上面命令执行后，该机器自动加入到swarm集群。这个会创建一个集群token，获取全球唯一的 token，作为集群唯一标识。后续将其他节点加入集群都会用到这个token值。</span><br><span class="line">其中，--advertise-addr参数表示其它swarm中的worker节点使用此ip地址与manager联系。命令的输出包含了其它节点如何加入集群的命令。</span><br><span class="line"> </span><br><span class="line">这里无意中遇到了一个小小的问题：</span><br><span class="line"># 在次执行上面的命令，回报下面的错误</span><br><span class="line">[root@manager43 ~]# docker swarm init --advertise-addr 192.168.31.43</span><br><span class="line">Error response from daemon: This node is already part of a swarm. Use &quot;docker swarm leave&quot; to leave this swarm and join another one.</span><br><span class="line"># 解决方法</span><br><span class="line">[root@manager43 ~]# docker swarm leave -f</span><br><span class="line">这里的leave就是在集群中删除节点，-f参数强制删除，执行完在重新执行OK</span><br><span class="line"> </span><br><span class="line">2) 查看集群的相关信息</span><br><span class="line">[root@manager43 ~]# docker info</span><br><span class="line">上面的命令执行后 找到Swarm的关键字，就可以看到相关信息了</span><br><span class="line"> </span><br><span class="line">[root@manager43 ~]# docker node ls</span><br><span class="line">ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION</span><br><span class="line">3jcmnzjh0e99ipgshk1ykuovd *   manager43           Ready               Active              Leader              18.06.0-ce</span><br><span class="line">上面的命令是查看集群中的机器(注意上面node ID旁边那个*号表示现在连接到这个节点上)</span><br><span class="line"> </span><br><span class="line">3) 添加节点主机到Swarm集群</span><br><span class="line">上面我们在创建Swarm集群的时候就已经给出了添加节点的方法</span><br><span class="line"> </span><br><span class="line"># 192.168.31.188 主机上执行</span><br><span class="line">[root@node188 ~]# docker swarm join --token SWMTKN-1-2lefzq18zohy9yr1vskutf1sfb2a590xz9d0mjj2m15zu9eprw-2938j5f50t35ycut0vbj2sx0s 192.168.31.43:2377</span><br><span class="line">This node joined a swarm as a worker.</span><br><span class="line"> </span><br><span class="line"># 192.168.31.139 主机上执行</span><br><span class="line">[root@node139 ~]# docker swarm join --token SWMTKN-1-2lefzq18zohy9yr1vskutf1sfb2a590xz9d0mjj2m15zu9eprw-2938j5f50t35ycut0vbj2sx0s 192.168.31.43:2377</span><br><span class="line">This node joined a swarm as a worker.</span><br><span class="line"> </span><br><span class="line">如果想要将其他更多的节点添加到这个swarm集群中，添加方法如上一致</span><br><span class="line"> </span><br><span class="line">在manager43主机上我们可以看一下集群中的机器及状态</span><br><span class="line">[root@manager43 ~]# docker node ls</span><br><span class="line">ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION</span><br><span class="line">3jcmnzjh0e99ipgshk1ykuovd *   manager43           Ready               Active              Leader              18.06.0-ce</span><br><span class="line">vww7ue2xprzg46bjx7afo4h04     node139             Ready               Active                                  18.06.1-ce</span><br><span class="line">c5klw5ns4adcvumzgiv66xpyj     node188             Ready               Active                                  18.06.1-ce</span><br><span class="line"> </span><br><span class="line">--------------------------------------------------------------------------------------------------------------------</span><br><span class="line">温馨提示：更改节点的availablity状态</span><br><span class="line">swarm集群中node的availability状态可以为 active或者drain，其中：</span><br><span class="line">active状态下，node可以接受来自manager节点的任务分派；</span><br><span class="line">drain状态下，node节点会结束task，且不再接受来自manager节点的任务分派（也就是下线节点）</span><br><span class="line">[root@manager43 ~]# docker node update --availability drain node139               # 将node139节点下线。如果要删除node139节点，命令是&quot;docker node rm --force node139&quot;</span><br><span class="line">node139</span><br><span class="line">[root@manager43 ~]# docker node ls</span><br><span class="line">ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION</span><br><span class="line">3jcmnzjh0e99ipgshk1ykuovd *   manager43           Ready               Active              Leader              18.06.0-ce</span><br><span class="line">vww7ue2xprzg46bjx7afo4h04     node139             Ready               Drain                                   18.06.1-ce</span><br><span class="line">c5klw5ns4adcvumzgiv66xpyj     node188             Ready               Active                                  18.06.1-ce</span><br><span class="line"> </span><br><span class="line">如上，当node1的状态改为drain后，那么该节点就不会接受task任务分发，就算之前已经接受的任务也会转移到别的节点上。</span><br><span class="line">再次修改为active状态（及将下线的节点再次上线）</span><br><span class="line">[root@manager43 ~]# docker node update --availability active node139</span><br><span class="line">node139</span><br><span class="line">[root@manager43 ~]# docker node ls</span><br><span class="line">ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION</span><br><span class="line">3jcmnzjh0e99ipgshk1ykuovd *   manager43           Ready               Active              Leader              18.06.0-ce</span><br><span class="line">vww7ue2xprzg46bjx7afo4h04     node139             Ready               Active                                  18.06.1-ce</span><br><span class="line">c5klw5ns4adcvumzgiv66xpyj     node188             Ready               Active                                  18.06.1-ce</span><br></pre></td></tr></table></figure>
+
+<p>3、在Swarm中部署服务(nginx为例)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br></pre></td><td class="code"><pre><span class="line">Docker 1.12版本提供服务的Scaling、health check、滚动升级等功能，并提供了内置的dns、vip机制，实现service的服务发现和负载均衡能力</span><br><span class="line">1) 创建网络在部署服务</span><br><span class="line"># 创建网络</span><br><span class="line">[root@manager43 ~]# docker network create -d overlay nginx_net</span><br><span class="line">a52jy33asc5o0ts0rq823bf0m</span><br><span class="line">[root@manager43 ~]# docker network ls | grep nginx_net</span><br><span class="line">a52jy33asc5o        nginx_net           overlay             swarm</span><br><span class="line"> </span><br><span class="line"># 部署服务</span><br><span class="line">[root@manager43 ~]# docker service create --replicas 1 --network nginx_net --name my_nginx -p 80:80 nginx    # 就创建了一个具有一个副本（--replicas 1 ）的nginx服务，使用镜像nginx</span><br><span class="line">olexfmtdf94sxyeetkchwhehg</span><br><span class="line">overall progress: 1 out of 1 tasks</span><br><span class="line">1/1: running   [==================================================&gt;]</span><br><span class="line">verify: Service converged</span><br><span class="line">在manager-node节点上使用上面这个覆盖网络创建nginx服务：</span><br><span class="line">其中，--replicas 参数指定服务由几个实例组成。</span><br><span class="line">注意：不需要提前在节点上下载nginx镜像，这个命令执行后会自动下载这个容器镜像（比如此处创建tomcat容器，就将下面命令中的镜像改为tomcat镜像）。</span><br><span class="line"> </span><br><span class="line"># 使用 docker service ls 查看正在运行服务的列表</span><br><span class="line">[root@manager43 ~]# docker service ls</span><br><span class="line">ID                  NAME                MODE                REPLICAS            IMAGE               PORTS</span><br><span class="line">olexfmtdf94s        my_nginx            replicated          1/1                 nginx:latest        *:80-&gt;80/tcp</span><br><span class="line"> </span><br><span class="line">2) 查询Swarm中服务的信息</span><br><span class="line">-pretty 使命令输出格式化为可读的格式，不加 --pretty 可以输出更详细的信息：</span><br><span class="line">[root@manager43 ~]# docker service inspect --pretty my_nginx</span><br><span class="line">ID:             zs7fw4ereo5w7ohd4n9ii06nt</span><br><span class="line">Name:           my_nginx</span><br><span class="line">Service Mode:   Replicated</span><br><span class="line"> Replicas:      1</span><br><span class="line">Placement:</span><br><span class="line">UpdateConfig:</span><br><span class="line"> Parallelism:   1</span><br><span class="line"> On failure:    pause</span><br><span class="line"> Monitoring Period: 5s</span><br><span class="line"> Max failure ratio: 0</span><br><span class="line"> Update order:      stop-first</span><br><span class="line">RollbackConfig:</span><br><span class="line"> Parallelism:   1</span><br><span class="line"> On failure:    pause</span><br><span class="line"> Monitoring Period: 5s</span><br><span class="line"> Max failure ratio: 0</span><br><span class="line"> Rollback order:    stop-first</span><br><span class="line">ContainerSpec:</span><br><span class="line"> Image:         nginx:latest@sha256:b73f527d86e3461fd652f62cf47e7b375196063bbbd503e853af5be16597cb2e</span><br><span class="line"> Init:          false</span><br><span class="line">Resources:</span><br><span class="line">Networks: nginx_net</span><br><span class="line">Endpoint Mode:  vip</span><br><span class="line">Ports:</span><br><span class="line"> PublishedPort = 80</span><br><span class="line">  Protocol = tcp</span><br><span class="line">  TargetPort = 80</span><br><span class="line">  PublishMode = ingress</span><br><span class="line"> </span><br><span class="line"># 查询到哪个节点正在运行该服务。如下该容器被调度到manager-node节点上启动了，然后访问http://192.168.31.43即可访问这个容器应用（如果调度到其他节点，访问也是如此）</span><br><span class="line">[root@manager43 ~]# docker service ps my_nginx</span><br><span class="line">ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE               ERROR               PORTS</span><br><span class="line">yzonph0zu7km        my_nginx.1          nginx:latest        manager43           Running             Running about an hour ago                      </span><br><span class="line">温馨提示：如果上面命令执行后，上面的 STATE 字段中刚开始的服务状态为 Preparing，需要等一会才能变为 Running 状态，其中最费时间的应该是下载镜像的过程</span><br><span class="line"> </span><br><span class="line">有上面命令可知，该服务在manager-node节点上运行。登陆该节点，可以查看到nginx容器在运行中</span><br><span class="line">[root@manager43 ~]# docker ps</span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES</span><br><span class="line">0dc7103f8030        nginx:latest        &quot;nginx -g &#x27;daemon of…&quot;   About an hour ago   Up About an hour    80/tcp              my_nginx.1.yzonph0zu7km0211uj0ro5brj</span><br><span class="line"> </span><br><span class="line">3) 在Swarm中动态扩展服务(scale)</span><br><span class="line">当然，如果只是通过service启动容器，swarm也算不上什么新鲜东西了。Service还提供了复制（类似kubernetes里的副本）功能。可以通过 docker service scale 命令来设置服务中容器的副本数</span><br><span class="line">比如将上面的my_nginx容器动态扩展到4个</span><br><span class="line">[root@manager43 ~]# docker service scale my_nginx=4</span><br><span class="line">my_nginx scaled to 4</span><br><span class="line">overall progress: 4 out of 4 tasks</span><br><span class="line">1/4: running   [==================================================&gt;]</span><br><span class="line">2/4: running   [==================================================&gt;]</span><br><span class="line">3/4: running   [==================================================&gt;]</span><br><span class="line">4/4: running   [==================================================&gt;]</span><br><span class="line">verify: Service converged</span><br><span class="line"> </span><br><span class="line">和创建服务一样，增加scale数之后，将会创建新的容器，这些新启动的容器也会经历从准备到运行的过程，过一分钟左右，服务应该就会启动完成，这时候可以再来看一下 nginx 服务中的容器</span><br><span class="line">[root@manager43 ~]# docker service ps my_nginx</span><br><span class="line">ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE               ERROR               PORTS</span><br><span class="line">yzonph0zu7km        my_nginx.1          nginx:latest        manager43           Running             Running about an hour ago                      </span><br><span class="line">mlprstt9ds5x        my_nginx.2          nginx:latest        node139             Running             Running 52 seconds ago                         </span><br><span class="line">y09lk90tdzdp        my_nginx.3          nginx:latest        node139             Running             Running 52 seconds ago                         </span><br><span class="line">clolfl3zlvj0        my_nginx.4          nginx:latest        node188             Running             Running 2 minutes ago  </span><br><span class="line"> </span><br><span class="line">可以看到，之前my_nginx容器只在manager-node节点上有一个实例，而现在又增加了3个实例。</span><br><span class="line">这4个副本的my_nginx容器分别运行在这三个节点上，登陆这三个节点，就会发现已经存在运行着的my_nginx容器</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">4) 模拟宕机node节点</span><br><span class="line">特别需要清楚的一点：</span><br><span class="line">如果一个节点宕机了（即该节点就会从swarm集群中被踢出），则Docker应该会将在该节点运行的容器，调度到其他节点，以满足指定数量的副本保持运行状态。</span><br><span class="line">    </span><br><span class="line">比如：</span><br><span class="line">将node139宕机后或将node139的docker服务关闭，那么它上面的task实例就会转移到别的节点上。当node139节点恢复后，它转移出去的task实例不会主动转移回来，</span><br><span class="line">只能等别的节点出现故障后转移task实例到它的上面。使用命令&quot;docker node ls&quot;，发现node139节点已不在swarm集群中了(状态为：Down)。</span><br><span class="line">[root@node139 ~]# systemctl stop docker</span><br><span class="line">[root@manager43 ~]# docker node ls</span><br><span class="line">ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION</span><br><span class="line">ppk7q0bjond8a58xja7in1qid *   manager43           Ready               Active              Leader              18.06.0-ce</span><br><span class="line">mums8azgbrffnecp3q8fz70pl     node139             Down                Active                                  18.06.1-ce</span><br><span class="line">z3n36maf03yjg7odghikuv574     node188             Ready               Active                                  18.06.1-ce</span><br><span class="line">    </span><br><span class="line">然后过一会查询服务的状态列表</span><br><span class="line">[root@manager43 ~]# docker service ps my_nginx</span><br><span class="line">ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE                ERROR               PORTS</span><br><span class="line">yzonph0zu7km        my_nginx.1          nginx:latest        manager43           Running             Running about an hour ago                       </span><br><span class="line">wb1cpk9k22rl        my_nginx.2          nginx:latest        node188             Running             Running about a minute ago                      </span><br><span class="line">mlprstt9ds5x         \_ my_nginx.2      nginx:latest        node139             Shutdown            Running 4 minutes ago                           </span><br><span class="line">rhbj4bcr4t2c        my_nginx.3          nginx:latest        manager43           Running             Running about a minute ago                      </span><br><span class="line">y09lk90tdzdp         \_ my_nginx.3      nginx:latest        node139             Shutdown            Running 4 minutes ago                           </span><br><span class="line">clolfl3zlvj0        my_nginx.4          nginx:latest        node188             Running             Running 6 minutes ago</span><br><span class="line"> </span><br><span class="line">上面我们可以发现node139故障后，它上面之前的两个task任务已经转移到node188和manager43节点上了</span><br><span class="line"> </span><br><span class="line">登陆到node188和manager43节点上，可以看到这两个运行的task任务。当访问192.168.31.188和192.168.31.43节点的80端口，swarm的负载均衡会把请求路由到一个任意节点的可用的容器上</span><br><span class="line">[root@manager43 ~]# docker ps -a</span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES</span><br><span class="line">ae4c5c2e6f3f        nginx:latest        &quot;nginx -g &#x27;daemon of…&quot;   4 minutes ago       Up 4 minutes        80/tcp              my_nginx.3.rhbj4bcr4t2c3y2f8vyfmbi21</span><br><span class="line">0dc7103f8030        nginx:latest        &quot;nginx -g &#x27;daemon of…&quot;   About an hour ago   Up About an hour    80/tcp              my_nginx.1.yzonph0zu7km0211uj0ro5brj</span><br><span class="line"> </span><br><span class="line">[root@node188 ~]# docker ps -a</span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES</span><br><span class="line">a63ef253f7dd        nginx:latest        &quot;nginx -g &#x27;daemon of…&quot;   3 minutes ago       Up 3 minutes        80/tcp              my_nginx.2.wb1cpk9k22rl1ydab7aozl2b5</span><br><span class="line">74a1a1db81d4        nginx:latest        &quot;nginx -g &#x27;daemon of…&quot;   8 minutes ago       Up 8 minutes        80/tcp              my_nginx.4.clolfl3zlvj0ewmh85c2ljnza</span><br><span class="line"> </span><br><span class="line">再次在node188和manager43节点上将从node139上转移过来的两个task关闭</span><br><span class="line">[root@manager43 ~]# docker stop my_nginx.3.rhbj4bcr4t2c3y2f8vyfmbi21</span><br><span class="line">my_nginx.3.rhbj4bcr4t2c3y2f8vyfmbi21</span><br><span class="line"> </span><br><span class="line">[root@node188 ~]# docker stop my_nginx.2.wb1cpk9k22rl1ydab7aozl2b5</span><br><span class="line">my_nginx.2.wb1cpk9k22rl1ydab7aozl2b5</span><br><span class="line"> </span><br><span class="line">再次查询服务的状态列表，发现这两个task又转移到node139上了</span><br><span class="line">[root@manager43 ~]# docker service ps my_nginx</span><br><span class="line">ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE             ERROR               PORTS</span><br><span class="line">yzonph0zu7km        my_nginx.1          nginx:latest        manager43           Running             Running 2 hours ago                          </span><br><span class="line">j2q61f8jtzba        my_nginx.2          nginx:latest        node188             Running             Running 24 seconds ago                       </span><br><span class="line">wb1cpk9k22rl         \_ my_nginx.2      nginx:latest        node188             Shutdown            Complete 29 seconds ago                      </span><br><span class="line">mlprstt9ds5x         \_ my_nginx.2      nginx:latest        node139             Shutdown            Running 11 minutes ago                       </span><br><span class="line">oz9wyjuldw1t        my_nginx.3          nginx:latest        manager43           Running             Running 40 seconds ago                       </span><br><span class="line">rhbj4bcr4t2c         \_ my_nginx.3      nginx:latest        manager43           Shutdown            Complete 45 seconds ago                      </span><br><span class="line">y09lk90tdzdp         \_ my_nginx.3      nginx:latest        node139             Shutdown            Running 11 minutes ago                       </span><br><span class="line">clolfl3zlvj0        my_nginx.4          nginx:latest        node188             Running             Running 12 minutes ago    </span><br><span class="line">结论：即在swarm cluster集群中启动的容器，在worker node节点上删除或停用后，该容器会自动转移到其他的worker node节点上</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">5) Swarm 动态缩容服务(scale)</span><br><span class="line">同理，swarm还可以缩容，同样是使用scale命令</span><br><span class="line">如下，将my_nginx容器变为1个</span><br><span class="line">[root@manager43 ~]# docker service scale my_nginx=1</span><br><span class="line">my_nginx scaled to 1</span><br><span class="line">overall progress: 1 out of 1 tasks</span><br><span class="line">1/1:  </span><br><span class="line">verify: Service converged</span><br><span class="line"> </span><br><span class="line">[root@manager43 ~]# docker service ls</span><br><span class="line">ID                  NAME                MODE                REPLICAS            IMAGE               PORTS</span><br><span class="line">zs7fw4ereo5w        my_nginx            replicated          1/1                 nginx:latest        *:80-&gt;80/tcp</span><br><span class="line"> </span><br><span class="line">[root@manager43 ~]# docker service ps my_nginx</span><br><span class="line">ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE             ERROR               PORTS</span><br><span class="line">yzonph0zu7km        my_nginx.1          nginx:latest        manager43           Running             Running 11 hours ago                         </span><br><span class="line">wb1cpk9k22rl        my_nginx.2          nginx:latest        node188             Shutdown            Complete 9 hours ago                         </span><br><span class="line">mlprstt9ds5x         \_ my_nginx.2      nginx:latest        node139             Shutdown            Shutdown 29 seconds ago                      </span><br><span class="line">rhbj4bcr4t2c        my_nginx.3          nginx:latest        manager43           Shutdown            Complete 9 hours ago                         </span><br><span class="line">y09lk90tdzdp         \_ my_nginx.3      nginx:latest        node139             Shutdown            Shutdown 29 seconds ago      </span><br><span class="line"> </span><br><span class="line">通过docker service ps my_nginx 可以看到node节点上已经为Shutdown状态了</span><br><span class="line"> </span><br><span class="line">在登录到node节点主机上查看</span><br><span class="line">[root@node188 ~]# docker ps -a</span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                      PORTS               NAMES</span><br><span class="line">f93c0a27374a        nginx:latest        &quot;nginx -g &#x27;daemon of…&quot;   9 hours ago         Exited (0) 44 seconds ago                       my_nginx.2.j2q61f8jtzba9kb3unupkhl25</span><br><span class="line">a63ef253f7dd        nginx:latest        &quot;nginx -g &#x27;daemon of…&quot;   9 hours ago         Exited (0) 9 hours ago                          my_nginx.2.wb1cpk9k22rl1ydab7aozl2b5</span><br><span class="line">[root@node139 ~]# docker ps -a</span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                   PORTS               NAMES</span><br><span class="line">e8ac2e44f5c4        nginx:latest        &quot;nginx -g &#x27;daemon of…&quot;   9 hours ago         Exited (0) 9 hours ago                       my_nginx.2.mlprstt9ds5xi48u1rzscgfdk</span><br><span class="line">5b031aa5a2cc        nginx:latest        &quot;nginx -g &#x27;daemon of…&quot;   9 hours ago         Exited (0) 9 hours ago                       my_nginx.3.y09lk90tdzdp8cwj6mm5oyr3f</span><br><span class="line">登录node节点，使用docker ps -a 查看，会发现容器被stop而非rm</span><br><span class="line"> </span><br><span class="line">6) 除了上面使用scale进行容器的扩容或缩容之外，还可以使用docker service update 命令。 可对 服务的启动 参数 进行 更新/修改。</span><br><span class="line">[root@manager43 ~]# docker service update --replicas 3 my_nginx</span><br><span class="line">my_nginx</span><br><span class="line">overall progress: 3 out of 3 tasks</span><br><span class="line">1/3: running   [==================================================&gt;]</span><br><span class="line">2/3: running   [==================================================&gt;]</span><br><span class="line">3/3: running   [==================================================&gt;]</span><br><span class="line">verify: Service converged</span><br><span class="line"> </span><br><span class="line">[root@manager43 ~]# docker service ls</span><br><span class="line">ID                  NAME                MODE                REPLICAS            IMAGE               PORTS</span><br><span class="line">zs7fw4ereo5w        my_nginx            replicated          3/3                 nginx:latest        *:80-&gt;80/tcp</span><br><span class="line"> </span><br><span class="line">[root@manager43 ~]# docker service ps my_nginx</span><br><span class="line">ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS</span><br><span class="line">yzonph0zu7km        my_nginx.1          nginx:latest        manager43           Running             Running 11 hours ago                        </span><br><span class="line">j3hduzd9pret        my_nginx.2          nginx:latest        node188             Running             Running 18 seconds ago                      </span><br><span class="line">wb1cpk9k22rl         \_ my_nginx.2      nginx:latest        node188             Shutdown            Complete 9 hours ago                        </span><br><span class="line">mlprstt9ds5x         \_ my_nginx.2      nginx:latest        node139             Shutdown            Shutdown 4 minutes ago                      </span><br><span class="line">gng96vc5vqpv        my_nginx.3          nginx:latest        node139             Running             Running 18 seconds ago                      </span><br><span class="line">rhbj4bcr4t2c         \_ my_nginx.3      nginx:latest        manager43           Shutdown            Complete 9 hours ago                        </span><br><span class="line">y09lk90tdzdp         \_ my_nginx.3      nginx:latest        node139             Shutdown            Shutdown 4 minutes ago    </span><br><span class="line"> </span><br><span class="line">docker service update 命令，也可用于直接 升级 镜像等</span><br><span class="line">[root@manager43 ~]# docker service update --image nginx:new my_nginx</span><br><span class="line"> </span><br><span class="line">[root@manager43 ~]# docker service ls</span><br><span class="line">ID                  NAME                MODE                REPLICAS            IMAGE               PORTS</span><br><span class="line">zs7fw4ereo5w        my_nginx            replicated          3/3                 nginx:new           *:80-&gt;80/tcp</span><br><span class="line">注意IMAGE列 变成了nginx:new</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">7) 为了下面的直观显示，我这里把my_nginx服务直接删除了</span><br><span class="line">[root@manager43 ~]# docker service rm my_nginx</span><br><span class="line"> </span><br><span class="line">这样就会把所有节点上的所有容器（task任务实例）全部删除了</span><br></pre></td></tr></table></figure>
+
+<p>4、Swarm中使用Volume(挂在目录，mount命令)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br></pre></td><td class="code"><pre><span class="line">1) 查看volume的帮助信息</span><br><span class="line">[root@manager43 ~]# docker volume --help</span><br><span class="line"> </span><br><span class="line">Usage:  docker volume COMMAND</span><br><span class="line"> </span><br><span class="line">Manage volumes</span><br><span class="line"> </span><br><span class="line">Commands:</span><br><span class="line">  create      Create a volume</span><br><span class="line">  inspect     Display detailed information on one or more volumes</span><br><span class="line">  ls          List volumes</span><br><span class="line">  prune       Remove all unused local volumes</span><br><span class="line">  rm          Remove one or more volumes</span><br><span class="line"> </span><br><span class="line">Run &#x27;docker volume COMMAND --help&#x27; for more information on a command.</span><br><span class="line"> </span><br><span class="line">2) 创建一个volume</span><br><span class="line">[root@manager43 ~]# docker volume create --name testvolume</span><br><span class="line">testvolume</span><br><span class="line"> </span><br><span class="line"># 查看创建的volume</span><br><span class="line">[root@manager43 ~]# docker volume ls</span><br><span class="line">DRIVER              VOLUME NAME</span><br><span class="line">local               testvolume</span><br><span class="line"> </span><br><span class="line"># 查看volume详情</span><br><span class="line">[root@manager43 ~]# docker volume inspect testvolume</span><br><span class="line">[</span><br><span class="line">    &#123;</span><br><span class="line">        &quot;CreatedAt&quot;: &quot;2018-10-21T10:50:02+08:00&quot;,</span><br><span class="line">        &quot;Driver&quot;: &quot;local&quot;,</span><br><span class="line">        &quot;Labels&quot;: &#123;&#125;,</span><br><span class="line">        &quot;Mountpoint&quot;: &quot;/var/lib/docker/volumes/testvolume/_data&quot;,</span><br><span class="line">        &quot;Name&quot;: &quot;testvolume&quot;,</span><br><span class="line">        &quot;Options&quot;: &#123;&#125;,</span><br><span class="line">        &quot;Scope&quot;: &quot;local&quot;</span><br><span class="line">    &#125;</span><br><span class="line">]</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">3) 创建新的服务并挂载testvolume(nginx为例)</span><br><span class="line">[root@manager43 ~]# docker service create --replicas 3 --mount type=volume,src=testvolume,dst=/zjz --name test_nginx nginx</span><br><span class="line">sh7wc8yzcvr0xaedo4tnraj7l</span><br><span class="line">overall progress: 3 out of 3 tasks</span><br><span class="line">1/3: running   [==================================================&gt;]</span><br><span class="line">2/3: running   [==================================================&gt;]</span><br><span class="line">3/3: running   [==================================================&gt;]</span><br><span class="line">verify: Service converged</span><br><span class="line"> </span><br><span class="line">温馨提示：</span><br><span class="line">参数src写成source也可以；dst表示容器内的路径，也可以写成target</span><br><span class="line"> </span><br><span class="line"># 查看创建服务</span><br><span class="line">[root@manager43 ~]# docker service ls</span><br><span class="line">ID                  NAME                MODE                REPLICAS            IMAGE               PORTS</span><br><span class="line">sh7wc8yzcvr0        test_nginx          replicated          3/3                 nginx:latest       </span><br><span class="line">[root@manager43 ~]# docker service ps test_nginx</span><br><span class="line">ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS</span><br><span class="line">m7m41kwt4q6w        test_nginx.1        nginx:latest        node188             Running             Running 56 seconds ago                      </span><br><span class="line">kayh81q1o1kx        test_nginx.2        nginx:latest        node139             Running             Running 56 seconds ago                      </span><br><span class="line">eq11v0rcwy38        test_nginx.3        nginx:latest        manager43           Running             Running 56 seconds ago           </span><br><span class="line"> </span><br><span class="line"># 查看有没有挂载成功(登录各个节点的容器看看有没有指定的目录并创建文件测试)</span><br><span class="line"># 容器中操作</span><br><span class="line">[root@manager43 ~]# docker exec -it 63451219cb4e /bin/bash</span><br><span class="line">root@63451219cb4e:/# cd /zjz/</span><br><span class="line">root@63451219cb4e:/zjz# ls</span><br><span class="line">root@63451219cb4e:/zjz# echo &quot;gen wo xue docker&quot; &gt; docker.txt</span><br><span class="line">root@63451219cb4e:/zjz# ls</span><br><span class="line">docker.txt</span><br><span class="line"> </span><br><span class="line">执行docker volume inspect testvolume 可以看到本地的路径(上面已经执行过了)</span><br><span class="line">本地路径：/var/lib/docker/volumes/testvolume/_data</span><br><span class="line">[root@manager43 ~]# cd /var/lib/docker/volumes/testvolume/_data</span><br><span class="line">[root@manager43 _data]# ls</span><br><span class="line">docker.txt</span><br><span class="line">[root@manager43 _data]# cat docker.txt</span><br><span class="line">gen wo xue docker</span><br><span class="line"> </span><br><span class="line">还可以将node节点机上的volume数据目录做成软链接</span><br><span class="line">[root@manager43 _data]# ln -s /var/lib/docker/volumes/testvolume/_data /zjz</span><br><span class="line">[root@manager43 _data]# cd /zjz/</span><br><span class="line">[root@manager43 zjz]# ls</span><br><span class="line">docker.txt</span><br><span class="line">[root@manager43 zjz]# echo &quot;123&quot; &gt; 1.txt  </span><br><span class="line">[root@manager43 zjz]# ll</span><br><span class="line">总用量 8</span><br><span class="line">-rw-r--r-- 1 root root  4 10月 21 11:04 1.txt</span><br><span class="line">-rw-r--r-- 1 root root 18 10月 21 11:00 docker.txt</span><br><span class="line"> </span><br><span class="line"># 容器中查看</span><br><span class="line">[root@manager43 zjz]# docker exec -it 63451219cb4e /bin/bash</span><br><span class="line">root@63451219cb4e:/# cd /zjz/</span><br><span class="line">root@63451219cb4e:/zjz# ls</span><br><span class="line">1.txt  docker.txt</span><br><span class="line">root@63451219cb4e:/zjz# cat 1.txt</span><br><span class="line">123</span><br><span class="line">root@63451219cb4e:/zjz# cat docker.txt</span><br><span class="line">gen wo xue docker</span><br><span class="line"> </span><br><span class="line"># 还有一种挂载方式简单说一下吧，上面的会了下面的肯定简单</span><br><span class="line">命令格式：</span><br><span class="line">docker service create --mount type=bind,target=/container_data/,source=/host_data/</span><br><span class="line">其中，参数target表示容器里面的路径，source表示本地硬盘路径</span><br><span class="line"> </span><br><span class="line"># 示例创建并挂载并使用网络</span><br><span class="line">[root@manager43 ~]# docker service create --replicas 1 --mount type=bind,target=/usr/share/nginx/html/,source=/opt/web/ --network nginx_net --name zjz_nginx -p 8880:80 nginx</span><br></pre></td></tr></table></figure>
+
+<p>5、多服务Swarm集群部署</p>
+<p>问：上面我们只是对单独的一个nginx服务进行的集群部署，那如果要统一编排多个服务呢？<br>答：docker 三剑客中有个compose 这个就是对单机进行统一编排的，它的实现是通过docker-compose.yml的文件，这里我们就可以结合compose和swarm进行多服务的编排(<a target="_blank" rel="noopener" href="https://www.cnblogs.com/zhujingzhi/p/9786622.html">docker compose教程</a>)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line">温馨提示：</span><br><span class="line">我们这里要部署的服务有三个(nginx服务，visualizer服务，portainer服务) 都是集群 GUI 管理服务</span><br><span class="line">docker service部署的是单个服务，我们可以使用docker stack进行多服务编排部署</span><br><span class="line"> </span><br><span class="line">1) 编写docker-compose.yml文件</span><br><span class="line">[root@manager43 ~]# mkdir testswarm</span><br><span class="line">[root@manager43 ~]# cd testswarm/</span><br><span class="line">[root@manager43 testswarm]# cat docker-compose.yml</span><br><span class="line">version: &quot;3&quot;</span><br><span class="line">services:</span><br><span class="line">  nginx:</span><br><span class="line">    image: nginx</span><br><span class="line">    ports:</span><br><span class="line">      - 8888:80</span><br><span class="line">    deploy:</span><br><span class="line">      mode: replicated</span><br><span class="line">      replocas: 3</span><br><span class="line"> </span><br><span class="line">  visualizer:</span><br><span class="line">    image: dockersamples/visualizer</span><br><span class="line">    ports:</span><br><span class="line">      - &quot;8080:8080&quot;</span><br><span class="line">    volumes:</span><br><span class="line">      - &quot;/var/run/docker.sock:/var/run/docker.sock&quot;</span><br><span class="line">    deploy:</span><br><span class="line">      replicas: 1</span><br><span class="line">      placement:</span><br><span class="line">        constraints: [node.role == manager]</span><br><span class="line"> </span><br><span class="line">  portainer:</span><br><span class="line">    image: portainer/portainer</span><br><span class="line">    ports:</span><br><span class="line">      - &quot;9000:9000&quot;</span><br><span class="line">    volumes:</span><br><span class="line">      - &quot;/var/run/docker.sock:/var/run/docker.sock&quot;</span><br><span class="line">    deploy:</span><br><span class="line">      replicas: 1</span><br><span class="line">      placement:</span><br><span class="line">        constraints: [node.role == manager]</span><br><span class="line"> </span><br><span class="line">2) 通过这个yml文件部署服务</span><br><span class="line">[root@manager43 testswarm]# docker stack deploy -c docker-compose.yml deploy_deamon</span><br><span class="line">Creating network deploy_deamon_default</span><br><span class="line">Creating service deploy_deamon_portainer</span><br><span class="line">Creating service deploy_deamon_nginx</span><br><span class="line">Creating service deploy_deamon_visualizer</span><br><span class="line"> </span><br><span class="line">通过上面的执行过程可以看出这样创建会默认创建一个网络并使用它，名字都是我们给的名字的前缀加上服务名</span><br><span class="line"> </span><br><span class="line"># 查看创建服务</span><br><span class="line">[root@manager43 testswarm]# docker service ls</span><br><span class="line">ID                  NAME                       MODE                REPLICAS            IMAGE                             PORTS</span><br><span class="line">xj2f1t5ax3nm        deploy_deamon_nginx        replicated          3/3                 nginx:latest                      *:8888-&gt;80/tcp</span><br><span class="line">ky9qpldr5abb        deploy_deamon_portainer    replicated          1/1                 portainer/portainer:latest        *:9000-&gt;9000/tcp</span><br><span class="line">r47ff177x1ir        deploy_deamon_visualizer   replicated          1/1                 dockersamples/visualizer:latest   *:8080-&gt;8080/tcp</span><br><span class="line"> </span><br><span class="line">[root@manager43 testswarm]# docker service ps deploy_deamon_nginx</span><br><span class="line">ID                  NAME                    IMAGE               NODE                DESIRED STATE       CURRENT STATE                ERROR               PORTS</span><br><span class="line">z3v4uc1ujsnq        deploy_deamon_nginx.1   nginx:latest        node139             Running             Running about a minute ago                      </span><br><span class="line">jhg3ups0cko5        deploy_deamon_nginx.2   nginx:latest        manager43           Running             Running about a minute ago                      </span><br><span class="line">3e6guv791x21        deploy_deamon_nginx.3   nginx:latest        node188             Running             Running about a minute ago        </span><br><span class="line"> </span><br><span class="line">[root@manager43 testswarm]# docker service ps deploy_deamon_portainer</span><br><span class="line">ID                  NAME                        IMAGE                        NODE                DESIRED STATE       CURRENT STATE                ERROR               PORTS</span><br><span class="line">whyuvy82cvvw        deploy_deamon_portainer.1   portainer/portainer:latest   manager43           Running             Running about a minute ago                      </span><br><span class="line"> </span><br><span class="line">[root@manager43 testswarm]# docker service ps deploy_deamon_visualizer</span><br><span class="line">ID                  NAME                         IMAGE                             NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS</span><br><span class="line">wge5w1eqykg3        deploy_deamon_visualizer.1   dockersamples/visualizer:latest   manager43           Running             Starting 7 seconds ago                     </span><br></pre></td></tr></table></figure>
+
+<p>测试</p>
+<p><img src="/images/docker-swarm/docker-swarm-7.png" alt="img"></p>
+<p><img src="/images/docker-swarm/docker-swarm-8.png" alt="img"></p>
+<p><img src="/images/docker-swarm/docker-swarm-9.png" alt="img"></p>
+<p><img src="/images/docker-swarm/docker-swarm-10.png" alt="img"></p>
+<p><img src="/images/docker-swarm/docker-swarm-11.png" alt="img"></p>
+<h2 id="八、Docker-Swarm-容器网络"><a href="#八、Docker-Swarm-容器网络" class="headerlink" title="八、Docker Swarm 容器网络"></a>八、Docker Swarm 容器网络</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br></pre></td><td class="code"><pre><span class="line">在Docker版本1.12之后swarm模式原生支持覆盖网络(overlay networks)，可以先创建一个覆盖网络，然后启动容器的时候启用这个覆盖网络，</span><br><span class="line">这样只要是这个覆盖网络内的容器，不管在不在同一个宿主机上都能相互通信，即跨主机通信！不同覆盖网络内的容器组之间是相互隔离的（相互ping不通）。</span><br><span class="line">   </span><br><span class="line">swarm模式的覆盖网络包括以下功能：</span><br><span class="line">1）可以附加多个服务到同一个网络。</span><br><span class="line">2）默认情况下，service discovery为每个swarm服务分配一个虚拟IP地址(vip)和DNS名称，使得在同一个网络中容器之间可以使用服务名称为互相连接。</span><br><span class="line">3）可以配置使用DNS轮循而不使用VIP</span><br><span class="line">4）为了可以使用swarm的覆盖网络，在启用swarm模式之间你需要在swarm节点之间开放以下端口：</span><br><span class="line">5）TCP/UDP端口7946 – 用于容器网络发现</span><br><span class="line">6）UDP端口4789 – 用于容器覆盖网络</span><br><span class="line">   </span><br><span class="line">实例如下：</span><br><span class="line">-----------在Swarm集群中创建overlay网络------------</span><br><span class="line">[root@manager-node ~]# docker network create --driver overlay --opt encrypted --subnet 10.10.19.0/24 ngx_net</span><br><span class="line">   </span><br><span class="line">参数解释：</span><br><span class="line">–opt encrypted  默认情况下swarm中的节点通信是加密的。在不同节点的容器之间，可选的–opt encrypted参数能在它们的vxlan流量启用附加的加密层。</span><br><span class="line">--subnet 命令行参数指定overlay网络使用的子网网段。当不指定一个子网时，swarm管理器自动选择一个子网并分配给网络。</span><br><span class="line">   </span><br><span class="line">[root@manager-node ~]# docker network ls</span><br><span class="line">NETWORK ID          NAME                DRIVER              SCOPE</span><br><span class="line">d7aa48d3e485        bridge              bridge              local            </span><br><span class="line">9e637a97a3b9        docker_gwbridge     bridge              local            </span><br><span class="line">b5a41c8c71e7        host                host                local            </span><br><span class="line">7f4fx3jf4dbr        ingress             overlay             swarm            </span><br><span class="line">3x2wgugr6zmn        ngx_net             overlay             swarm            </span><br><span class="line">0808a5c72a0a        none                null                local</span><br><span class="line">   </span><br><span class="line">由上可知，Swarm当中拥有2套覆盖网络。其中&quot;ngx_net&quot;网络正是我们在部署容器时所创建的成果。而&quot;ingress&quot;覆盖网络则为默认提供。</span><br><span class="line">Swarm 管理节点会利用 ingress 负载均衡以将服务公布至集群之外。</span><br><span class="line">在将服务连接到这个创建的网络之前，网络覆盖到manager节点。上面输出的SCOPE为 swarm 表示将服务部署到Swarm时可以使用此网络。</span><br><span class="line">在将服务连接到这个网络后，Swarm只将该网络扩展到特定的worker节点，这个worker节点被swarm调度器分配了运行服务的任务。</span><br><span class="line">在那些没有运行该服务任务的worker节点上，网络并不扩展到该节点。</span><br><span class="line">   </span><br><span class="line">------------------将服务连接到overlay网络-------------------</span><br><span class="line">[root@manager-node ~]# docker service create --replicas 5 --network ngx_net --name my-test -p 80:80 nginx</span><br><span class="line">   </span><br><span class="line">上面名为&quot;my-test&quot;的服务启动了3个task，用于运行每个任务的容器都可以彼此通过overlay网络进行通信。Swarm集群将网络扩展到所有任务处于Running状态的节点上。</span><br><span class="line">[root@manager-node ~]# docker service ls</span><br><span class="line">ID            NAME     REPLICAS  IMAGE  COMMAND</span><br><span class="line">dsaxs6v463g9  my-test  5/5       nginx</span><br><span class="line">   </span><br><span class="line">在manager-node节点上，通过下面的命令查看哪些节点有处于running状态的任务：</span><br><span class="line">[root@manager-node ~]# docker service ps my-test</span><br><span class="line">ID                         NAME       IMAGE  NODE          DESIRED STATE  CURRENT STATE          ERROR</span><br><span class="line">8433fuiy7vpu0p80arl7vggfe  my-test.1  nginx  node2         Running        Running 2 minutes ago</span><br><span class="line">f1h7a0vtojv18zrsiw8j0rzaw  my-test.2  nginx  node1         Running        Running 2 minutes ago</span><br><span class="line">ex73ifk3jvzw8ukurl8yu7fyq  my-test.3  nginx  node1         Running        Running 2 minutes ago</span><br><span class="line">cyu73jd8psupfhken23vvmpud  my-test.4  nginx  manager-node  Running        Running 2 minutes ago</span><br><span class="line">btorxekfix4hcqh4v83dr0tzw  my-test.5  nginx  manager-node  Running        Running 2 minutes ago</span><br><span class="line">   </span><br><span class="line">可见三个节点都有处于running状态的任务，所以my-network网络扩展到三个节点上。</span><br><span class="line">   </span><br><span class="line">可以查询某个节点上关于my-network的详细信息：</span><br><span class="line">[root@manager-node ~]# docker network inspect ngx_net</span><br><span class="line">[</span><br><span class="line">    &#123;</span><br><span class="line">        &quot;Name&quot;: &quot;ngx_net&quot;,</span><br><span class="line">        &quot;Id&quot;: &quot;3x2wgugr6zmn1mcyf9k1du27p&quot;,</span><br><span class="line">        &quot;Scope&quot;: &quot;swarm&quot;,</span><br><span class="line">        &quot;Driver&quot;: &quot;overlay&quot;,</span><br><span class="line">        &quot;EnableIPv6&quot;: false,</span><br><span class="line">        &quot;IPAM&quot;: &#123;</span><br><span class="line">            &quot;Driver&quot;: &quot;default&quot;,</span><br><span class="line">            &quot;Options&quot;: null,</span><br><span class="line">            &quot;Config&quot;: [</span><br><span class="line">                &#123;</span><br><span class="line">                    &quot;Subnet&quot;: &quot;10.10.19.0/24&quot;,</span><br><span class="line">                    &quot;Gateway&quot;: &quot;10.10.19.1&quot;</span><br><span class="line">                &#125;</span><br><span class="line">            ]</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;Internal&quot;: false,</span><br><span class="line">        &quot;Containers&quot;: &#123;</span><br><span class="line">            &quot;00f47e38deea76269eb03ba13695ec0b0c740601c85019546d6a9a17fd434663&quot;: &#123;</span><br><span class="line">                &quot;Name&quot;: &quot;my-test.5.btorxekfix4hcqh4v83dr0tzw&quot;,</span><br><span class="line">                &quot;EndpointID&quot;: &quot;ea962d07eee150b263ae631b8a7f8c1950337c11ef2c3d488a7c3717defd8601&quot;,</span><br><span class="line">                &quot;MacAddress&quot;: &quot;02:42:0a:0a:13:03&quot;,</span><br><span class="line">                &quot;IPv4Address&quot;: &quot;10.10.19.3/24&quot;,</span><br><span class="line">                &quot;IPv6Address&quot;: &quot;&quot;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;957620c6f7abb44ad8dd2d842d333f5e5c1655034dc43e49abbbd680de3a5341&quot;: &#123;</span><br><span class="line">                &quot;Name&quot;: &quot;my-test.4.cyu73jd8psupfhken23vvmpud&quot;,</span><br><span class="line">                &quot;EndpointID&quot;: &quot;f33a6e9ddf1dd01bcfc43ffefd19e19514658f001cdf9b2fbe23bc3fdf56a42a&quot;,</span><br><span class="line">                &quot;MacAddress&quot;: &quot;02:42:0a:0a:13:07&quot;,</span><br><span class="line">                &quot;IPv4Address&quot;: &quot;10.10.19.7/24&quot;,</span><br><span class="line">                &quot;IPv6Address&quot;: &quot;&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;Options&quot;: &#123;</span><br><span class="line">            &quot;com.docker.network.driver.overlay.vxlanid_list&quot;: &quot;257&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;Labels&quot;: &#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">]</span><br><span class="line">   </span><br><span class="line">从上面的信息可以看出在manager-node节点上，名为my-test的服务有一个名为my-test.5.btorxekfix4hcqh4v83dr0tzw和</span><br><span class="line">my-test.4.cyu73jd8psupfhken23vvmpud的task连接到名为ngx_net的网络上（另外两个节点node1和node2同样可以用上面命令查看）</span><br><span class="line">[root@node1 ~]# docker network inspect ngx_net</span><br><span class="line">.......</span><br><span class="line">        &quot;Containers&quot;: &#123;</span><br><span class="line">            &quot;7d9986fad5a7d834676ba76ae75aff2258f840953f1dc633c3ef3c0efd2b2501&quot;: &#123;</span><br><span class="line">                &quot;Name&quot;: &quot;my-test.3.ex73ifk3jvzw8ukurl8yu7fyq&quot;,</span><br><span class="line">                &quot;EndpointID&quot;: &quot;957ca19f3d5480762dbd14fd9a6a1cd01a8deac3e8e35b23d1350f480a7b2f37&quot;,</span><br><span class="line">                &quot;MacAddress&quot;: &quot;02:42:0a:0a:13:06&quot;,</span><br><span class="line">                &quot;IPv4Address&quot;: &quot;10.10.19.6/24&quot;,</span><br><span class="line">                &quot;IPv6Address&quot;: &quot;&quot;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;9e50fceada1d7c653a886ca29d2bf2606debafe8c8a97f2d79104faf3ecf8a46&quot;: &#123;</span><br><span class="line">                &quot;Name&quot;: &quot;my-test.2.f1h7a0vtojv18zrsiw8j0rzaw&quot;,</span><br><span class="line">                &quot;EndpointID&quot;: &quot;b1c209c7b68634e88e0bf5e100fe03435b3096054da6555c61e6c207ac651ac2&quot;,</span><br><span class="line">                &quot;MacAddress&quot;: &quot;02:42:0a:0a:13:05&quot;,</span><br><span class="line">                &quot;IPv4Address&quot;: &quot;10.10.19.5/24&quot;,</span><br><span class="line">                &quot;IPv6Address&quot;: &quot;&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">.........</span><br><span class="line">  </span><br><span class="line">[root@node2 web]# docker network inspect ngx_net</span><br><span class="line">........</span><br><span class="line">        &quot;Containers&quot;: &#123;</span><br><span class="line">            &quot;4bdcce0ee63edc08d943cf4a049eac027719ff2dc14b7c3aa85fdddc5d1da968&quot;: &#123;</span><br><span class="line">                &quot;Name&quot;: &quot;my-test.1.8433fuiy7vpu0p80arl7vggfe&quot;,</span><br><span class="line">                &quot;EndpointID&quot;: &quot;df58de85b0a0e4d128bf332fc783f6528d1f179b0f9f3b7aa70ebc832640d3bc&quot;,</span><br><span class="line">                &quot;MacAddress&quot;: &quot;02:42:0a:0a:13:04&quot;,</span><br><span class="line">                &quot;IPv4Address&quot;: &quot;10.10.19.4/24&quot;,</span><br><span class="line">                &quot;IPv6Address&quot;: &quot;&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">   </span><br><span class="line">可以通过查询服务来获得服务的虚拟IP地址，如下：</span><br><span class="line">[root@manager-node ~]# docker service inspect --format=&#x27;&#123;&#123;json .Endpoint.VirtualIPs&#125;&#125;&#x27; my-test</span><br><span class="line">[&#123;&quot;NetworkID&quot;:&quot;7f4fx3jf4dbrp97aioc05pul4&quot;,&quot;Addr&quot;:&quot;10.255.0.6/16&quot;&#125;,&#123;&quot;NetworkID&quot;:&quot;3x2wgugr6zmn1mcyf9k1du27p&quot;,&quot;Addr&quot;:&quot;10.10.19.2/24&quot;&#125;]</span><br><span class="line">   </span><br><span class="line">由上结果可知，10.10.19.2其实就是swarm集群内部的vip，整个网络结构如下图所示：</span><br></pre></td></tr></table></figure>
+
+<p>　<img src="/images/docker-swarm/docker-swarm-12.png" alt="img"></p>
+<p>加入ngx_net网络的容器彼此之间可以通过IP地址通信，也可以通过名称通信。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br></pre></td><td class="code"><pre><span class="line">[root@node2 ~]# docker ps</span><br><span class="line">CONTAINER ID    IMAGE           COMMAND                  CREATED         STATUS             PORTS    NAMES</span><br><span class="line">4bdcce0ee63e    nginx:latest    &quot;nginx -g &#x27;daemon off&quot;   22 minutes ago  Up 22 minutes      80/tcp   my-test.1.8433fuiy7vpu0p80arl7vggfe</span><br><span class="line">  </span><br><span class="line">[root@node2 ~]# docker exec -ti 4bdcce0ee63e /bin/bash</span><br><span class="line">root@4bdcce0ee63e:/# ip addr                                                                                          </span><br><span class="line">1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default</span><br><span class="line">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00</span><br><span class="line">    inet 127.0.0.1/8 scope host lo</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 ::1/128 scope host</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">1786: eth0@if1787: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1450 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 02:42:0a:ff:00:08 brd ff:ff:ff:ff:ff:ff link-netnsid 0</span><br><span class="line">    inet 10.255.0.8/16 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet 10.255.0.6/32 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::42:aff:feff:8/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">1788: eth1@if1789: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 02:42:ac:12:00:03 brd ff:ff:ff:ff:ff:ff link-netnsid 1</span><br><span class="line">    inet 172.18.0.3/16 scope global eth1</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::42:acff:fe12:3/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">1791: eth2@if1792: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1450 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 02:42:0a:0a:13:04 brd ff:ff:ff:ff:ff:ff link-netnsid 2</span><br><span class="line">    inet 10.10.19.4/24 scope global eth2</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet 10.10.19.2/32 scope global eth2</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::42:aff:fe0a:1304/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">  </span><br><span class="line">root@4bdcce0ee63e:/# ping 10.10.19.3</span><br><span class="line">PING 10.10.19.3 (10.10.19.3): 56 data bytes</span><br><span class="line">64 bytes from 10.10.19.3: icmp_seq=0 ttl=64 time=0.890 ms</span><br><span class="line">64 bytes from 10.10.19.3: icmp_seq=1 ttl=64 time=0.622 ms</span><br><span class="line">.....-</span><br><span class="line">2 packets transmitted, 2 packets received, 0% packet loss</span><br><span class="line">round-trip min/avg/max/stddev = 0.622/0.756/0.890/0.134 ms</span><br><span class="line">  </span><br><span class="line">root@4bdcce0ee63e:/# ping 10.10.19.6</span><br><span class="line">PING 10.10.19.6 (10.10.19.6): 56 data bytes</span><br><span class="line">64 bytes from 10.10.19.6: icmp_seq=0 ttl=64 time=0.939 ms</span><br><span class="line">64 bytes from 10.10.19.6: icmp_seq=1 ttl=64 time=0.590 ms</span><br><span class="line">  </span><br><span class="line">----------------------------使用swarm模式的服务发现--------------------------</span><br><span class="line">默认情况下，当创建了一个服务并连接到某个网络后，swarm会为该服务分配一个VIP。此VIP根据服务名映射到DNS。在网络上的容器共享该服务的DNS映射，</span><br><span class="line">所以网络上的任意容器可以通过服务名访问服务。</span><br><span class="line">  </span><br><span class="line">在同一overlay网络中，不用通过端口映射来使某个服务可以被其它服务访问。Swarm内部的负载均衡器自动将请求发送到服务的VIP上，然后分发到所有的</span><br><span class="line">active的task上。</span><br><span class="line">  </span><br><span class="line">如下示例：</span><br><span class="line">在同一个网络中添加了一个centos服务，此服务可以通过名称my-test访问前面创建的nginx服务：</span><br><span class="line">[root@manager-node ~]# docker service create --name my-centos --network ngx_net centos       </span><br><span class="line">  </span><br><span class="line">查询centos运行在哪个节点上（上面创建命令执行后，需要一段时间才能完成这个centos服务的创建）</span><br><span class="line">[root@manager-node ~]# docker service ps my-centos</span><br><span class="line">ID                         NAME             IMAGE   NODE   DESIRED STATE  CURRENT STATE            ERROR</span><br><span class="line">e03pqgkjs3l1qizc6v4aqaune  my-centos.1      centos  node2  Running        Preparing 4 seconds ago</span><br><span class="line">  </span><br><span class="line">登录centos运行的节点（由上可知是node2节点），打开centos的交互shell：</span><br><span class="line">[root@node2 ~]# docker ps</span><br><span class="line">CONTAINER ID        IMAGE                    COMMAND                  CREATED             STATUS            NAMES</span><br><span class="line">e4554490d891        centos:latest            &quot;/bin/bash&quot;             About an hour ago   Up About an hour   my-centos.1.9yk5ie28gwk9mw1h1jovb68ki</span><br><span class="line">  </span><br><span class="line">[root@node2 ~]# docker exec -ti my-centos.1.9yk5ie28gwk9mw1h1jovb68ki /bin/bash</span><br><span class="line">root@4bdcce0ee63e:/# nslookup my-test</span><br><span class="line">Server: 127.0.0.11</span><br><span class="line">Address 1: 127.0.0.11</span><br><span class="line">  </span><br><span class="line">Name: my-test</span><br><span class="line">Address 1: 10.10.19.2 10.10.19.2</span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line">从centos容器内部，使用特殊查询 查询DNS，来找到my-test服务的所有容器的IP地址：</span><br><span class="line">root@4bdcce0ee63e:/# nslookup tasks.my-test</span><br><span class="line">Server: 127.0.0.11</span><br><span class="line">Address 1: 127.0.0.11</span><br><span class="line">  </span><br><span class="line">Name: tasks.my-test</span><br><span class="line">Address 1: 10.10.19.4 my-test.1.8433fuiy7vpu0p80arl7vggfe</span><br><span class="line">Address 2: 10.10.19.5 my-test.2.f1h7a0vtojv18zrsiw8j0rzaw</span><br><span class="line">Address 3: 10.10.19.6 my-test.3.ex73ifk3jvzw8ukurl8yu7fyq</span><br><span class="line">Address 2: 10.10.19.7 my-test.4.cyu73jd8psupfhken23vvmpud</span><br><span class="line">Address 3: 10.10.19.3 my-test.5.btorxekfix4hcqh4v83dr0tzw</span><br><span class="line">  </span><br><span class="line">从centos容器内部，通过wget来访问my-test服务中运行的nginx网页服务器</span><br><span class="line">root@4bdcce0ee63e:/# wget -O- my-test     </span><br><span class="line">Connecting to my-test (10.10.19.2:80)</span><br><span class="line">&lt;!DOCTYPE html&gt;</span><br><span class="line">&lt;html&gt;</span><br><span class="line">&lt;head&gt;</span><br><span class="line">&lt;title&gt;Welcome to nginx!&lt;/title&gt;</span><br><span class="line">...</span><br><span class="line">  </span><br><span class="line">Swarm的负载均衡器自动将HTTP请求路由到VIP上，然后到一个active的task容器上。它根据round-robin选择算法将后续的请求分发到另一个active的task上。</span><br><span class="line">  </span><br><span class="line">-----------------------------------为服务使用DNS round-robin-----------------------------</span><br><span class="line">在创建服务时，可以配置服务直接使用DNS round-robin而无需使用VIP。这是通过在创建服务时指定 --endpoint-mode dnsrr 命令行参数实现的。</span><br><span class="line">当你想要使用自己的负载均衡器时可以使用这种方式。</span><br><span class="line">  </span><br><span class="line">如下示例（注意：使用DNS round-robin方式创建服务，不能直接在命令里使用-p指定端口）</span><br><span class="line">[root@manager-node ~]# docker service create --replicas 3 --name my-dnsrr-nginx --network ngx_net --endpoint-mode dnsrr nginx</span><br><span class="line">  </span><br><span class="line">[root@manager-node ~]# docker service ps my-dnsrr-nginx</span><br><span class="line">ID                         NAME              IMAGE  NODE          DESIRED STATE  CURRENT STATE          ERROR</span><br><span class="line">65li2zbhxvvoaesndmwjokouj  my-dnsrr-nginx.1  nginx  node1         Running        Running 2 minutes ago</span><br><span class="line">5hjw7wm4xr877879m0ewjciuj  my-dnsrr-nginx.2  nginx  manager-node  Running        Running 2 minutes ago</span><br><span class="line">afo7acduge2qfy60e87liz557  my-dnsrr-nginx.3  nginx  manager-node  Running        Running 2 minutes ago</span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line">当通过服务名称查询DNS时，DNS服务返回所有任务容器的IP地址：</span><br><span class="line">root@4bdcce0ee63e:/# nslookup my-dnsrr-nginx</span><br><span class="line">Server:    127.0.0.11</span><br><span class="line">Address 1: 127.0.0.11</span><br><span class="line">  </span><br><span class="line">Name:      my-dnsrr-nginx</span><br><span class="line">Address 1: 10.10.19.10 my-dnsrr-nginx.3.0sm1n9o8hygzarv5t5eq46okn.my-network</span><br><span class="line">Address 2: 10.10.19.9  my-dnsrr-nginx.2.b3o1uoa8m003b2kk0ytl9lawh.my-network</span><br><span class="line">Address 3: 10.10.19.8  my-dnsrr-nginx.1.55za4c83jq9846rle6eigiq15.my-network</span><br><span class="line">  </span><br><span class="line">需要注意的是：一定要确认VIP的连通性</span><br><span class="line">通常Docker官方推荐使用dig，nslookup或其它DNS查询工具来查询通过DNS对服务名的访问。因为VIP是逻辑IP，ping并不是确认VIP连通性的正确的工具。</span><br></pre></td></tr></table></figure>
+
+
+
+<p>来源：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/zhujingzhi/p/9792432.html">https://www.cnblogs.com/zhujingzhi/p/9792432.html</a></p>
+ 
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+          
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.idream68.top/2021/05/07/docker/docker-swarm/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/docker/" rel="tag">docker</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/docker-swarm/" rel="tag">docker swarm</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/docker-%E9%9B%86%E7%BE%A4/" rel="tag">docker 集群</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2021/05/07/docker/docker-base/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            docker基础
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2021/05/07/git/git-ssh-generate/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">git ssh 生成</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "WBAKYWjpwseQlCCCbVA2hN2j-MdYXbMMI",
+    app_key: "1wXEOnVKMoNjeeM195vDMQch",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "给我的文章加点评论吧~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+   
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2021-2022
+        <i class="ri-heart-fill heart_icon"></i> zjhan
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Dream"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" target="_blank" rel="noopener" href="https://500px.com.cn/idream68">摄影</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+ 
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+ 
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: ".tocbot",
+    contentSelector: ".article-entry",
+    headingSelector: "h1, h2, h3, h4, h5, h6",
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: "main",
+    positionFixedSelector: ".tocbot",
+    positionFixedClass: "is-position-fixed",
+    fixedSidebarOffset: "auto",
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+ <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script> 
+<!-- MathJax -->
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+ 
+<link rel="stylesheet" href="/css/clipboard.css">
+ <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+ 
+<!-- CanvasBackground -->
+ 
+<script src="/js/dz.js"></script>
+ 
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ theme: "simple" });
+  }
+</script>
+
+
+    
+  </div>
+</body>
+
+</html>

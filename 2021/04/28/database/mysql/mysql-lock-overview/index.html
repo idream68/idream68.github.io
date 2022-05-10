@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+  
+
+    <head>
+      <meta charset="utf-8" />
+        
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1"
+      />
+      <title>mysql锁概述 |  Dream</title>
+  <meta name="generator" content="hexo-theme-ayer">
+      
+      <link rel="shortcut icon" href="/favicon.ico" />
+       
+<link rel="stylesheet" href="/dist/main.css">
+
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/css/remixicon.min.css"
+      />
+      
+<link rel="stylesheet" href="/css/custom.css">
+ 
+      <script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+       
+ 
+
+      <!-- mermaid -->
+      
+      <script src="https://cdn.jsdelivr.net/npm/mermaid@8.9.2/dist/mermaid.min.js"></script>
+      
+    <link rel="alternate" href="/atom.xml" title="Dream" type="application/atom+xml">
+</head>
+  </html>
+</html>
+
+
+<body>
+  <div id="app">
+    
+      
+    <main class="content on">
+      <section class="outer">
+  <article
+  id="post-database/mysql/mysql-lock-overview"
+  class="article article-type-post"
+  itemscope
+  itemprop="blogPost"
+  data-scroll-reveal
+>
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  mysql锁概述
+</h1>
+ 
+
+      
+    </header>
+     
+    <div class="article-meta">
+      <a href="/2021/04/28/database/mysql/mysql-lock-overview/" class="article-date">
+  <time datetime="2021-04-28T12:44:07.000Z" itemprop="datePublished">2021-04-28</time>
+</a> 
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/database/">database</a> / <a class="article-category-link" href="/categories/database/mysql/">mysql</a>
+  </div>
+  
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">5.6k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">21 min</span>
+        </span>
+    </span>
+</div>
+ 
+    </div>
+      
+    <div class="tocbot"></div>
+
+
+
+
+  
+    <div class="article-entry" itemprop="articleBody">
+       
+  <h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p><img src="/images/mysql-lock/mysql-lock.png" alt="image" title="锁说明"></p>
+<h1 id="1-锁？"><a href="#1-锁？" class="headerlink" title="1.锁？"></a>1.锁？</h1><h2 id="1-1何为锁"><a href="#1-1何为锁" class="headerlink" title="1.1何为锁"></a>1.1何为锁</h2><p>锁在现实中的意义为:封闭的器物，以钥匙或暗码开启。在计算机中的锁一般用来管理对共享资源的并发访问，比如我们java同学熟悉的Lock,synchronized等都是我们常见的锁。当然在我们的数据库中也有锁用来控制资源的并发访问，这也是数据库和文件系统的区别之一。</p>
+<h2 id="1-2为什么要懂数据库锁"><a href="#1-2为什么要懂数据库锁" class="headerlink" title="1.2为什么要懂数据库锁?"></a>1.2为什么要懂数据库锁?</h2><p>通常来说对于一般的开发人员，在使用数据库的时候一般懂点DQL(select),DML(insert,update,delete)就够了。</p>
+<p>小明是一个刚刚毕业在互联网公司工作的Java开发工程师，平常的工作就是完成PM的需求，当然在完成需求的同时肯定逃脱不了spring,springmvc,mybatis的那一套框架，所以一般来说sql还是自己手写，遇到比较复杂的sql会从网上去百度一下。对于一些比较重要操作，比如交易啊这些，小明会用spring的事务来对数据库的事务进行管理，由于数据量比较小目前还涉及不了分布式事务。</p>
+<p>前几个月小明过得都还风调雨顺,知道有一天，小明接了一个需求，商家有个配置项，叫优惠配置项，可以配置买一送一，买一送二等等规则，当然这些配置是批量传输给后端的，这样就有个问题每个规则都得去匹配他到底是删除还是添加还是修改，这样后端逻辑就比较麻烦，聪明的小明想到了一个办法，直接删除这个商家的配置，然后全部添加进去。小明马上开发完毕，成功上线。</p>
+<p>开始上线没什么毛病，但是日志经常会出现一些mysql-insert-deadlock异常。由于小明经验比较浅，对于这类型的问题第一次遇见，于是去问了他们组的老司机-大红，大红一看见这个问题，然后看了他的代码之后，输出了几个命令看了几个日志，马上定位了问题，告诉了小明：这是因为delete的时候会加间隙锁，但是间隙锁之间却可以兼容，但是插入新的数据的时候就会因为插入意向锁会被间隙锁阻塞，导致双方被资源被互占，导致死锁。小明听了之后似懂非懂，由于大红的事情比较多，不方便一直麻烦大红，所以决定自己下来自己想。下班过后，小明回想大红说的话，什么是间隙锁，什么是插入意向锁，看来作为开发者对数据库不应该只会写SQL啊，不然遇到一些疑难杂症完全没法解决啊。想完，于是小明就踏上了学习Mysql锁这条不归之路。</p>
+<h1 id="2-InnoDB"><a href="#2-InnoDB" class="headerlink" title="2.InnoDB"></a>2.InnoDB</h1><h2 id="2-1mysql体系架构"><a href="#2-1mysql体系架构" class="headerlink" title="2.1mysql体系架构"></a>2.1mysql体系架构</h2><p>小明没有着急去了解锁这方面的知识，他首先先了解了下Mysql体系架构:</p>
+<p> <img src="/images/mysql-lock/mysql-lock-1.webp" alt="图片"> </p>
+<p>可以发现Mysql由连接池组件、管理服务和工具组件、sql接口组件、查询分析器组件、优化器组件、 缓冲组件、插件式存储引擎、物理文件组成。</p>
+<p>小明发现在mysql中存储引擎是以插件的方式提供的，在Mysql中有多种存储引擎，每个存储引擎都有自己的特点。随后小明在命令行中打出了:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">show engines \G;</span><br></pre></td></tr></table></figure>
+
+<p>一看原来有这么多种引擎。</p>
+<p>又打出了下面的命令，查看当前数据库默认的引擎:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">show variables like &#x27;%storage_engine%&#x27;;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/mysql-lock/mysql-lock-2.webp" alt="图片">小明恍然大悟:原来自己的数据库是使用的InnoDB,依稀记得自己在上学的时候好像听说过有个引擎叫MyIsAM,小明想这两个有啥不同呢?马上查找了一下资料:</p>
+<table>
+<thead>
+<tr>
+<th align="left">对比项</th>
+<th align="left">InnoDB</th>
+<th align="left">MyIsAM</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">事务</td>
+<td align="left">支持</td>
+<td align="left">不支持</td>
+</tr>
+<tr>
+<td align="left">锁</td>
+<td align="left">支持MVCC行锁</td>
+<td align="left">表锁</td>
+</tr>
+<tr>
+<td align="left">外键</td>
+<td align="left">支持</td>
+<td align="left">不支持</td>
+</tr>
+<tr>
+<td align="left">存储空间</td>
+<td align="left">存储空间由于需要高速缓存，较大</td>
+<td align="left">可压缩</td>
+</tr>
+<tr>
+<td align="left">适用场景</td>
+<td align="left">有一定量的update和Insert</td>
+<td align="left">大量的select</td>
+</tr>
+</tbody></table>
+<p>小明大概了解了一下InnoDB和MyIsAM的区别，由于使用的是InnoDB，小明就没有过多的纠结这一块。</p>
+<h2 id="2-2事务的隔离性"><a href="#2-2事务的隔离性" class="headerlink" title="2.2事务的隔离性"></a>2.2事务的隔离性</h2><p>小明在研究锁之前，又回想到之前上学的时候教过的数据库事务隔离性，其实锁在数据库中其功能之一也是用来实现事务隔离性。而事务的隔离性其实是用来解决，脏读，不可重复读，幻读几类问题。</p>
+<h3 id="2-2-1-脏读"><a href="#2-2-1-脏读" class="headerlink" title="2.2.1 脏读"></a>2.2.1 脏读</h3><p>一个事务读取到另一个事务未提交的更新数据。 什么意思呢?</p>
+<table>
+<thead>
+<tr>
+<th align="left">时间点</th>
+<th align="left">事务A</th>
+<th align="left">事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">1</td>
+<td align="left">begin;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">2</td>
+<td align="left">select * from user where id &#x3D; 1;</td>
+<td align="left">begin;</td>
+</tr>
+<tr>
+<td align="left">3</td>
+<td align="left"></td>
+<td align="left">update user set namm &#x3D; ‘test’ where id &#x3D; 1;</td>
+</tr>
+<tr>
+<td align="left">4</td>
+<td align="left">select * from user where id &#x3D; 1;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">5</td>
+<td align="left">commit;</td>
+<td align="left">commit;</td>
+</tr>
+</tbody></table>
+<p>在事务A，B中，事务A在时间点2，4分别对user表中id&#x3D;1的数据进行了查询了，但是事务B在时间点3进行了修改，导致了事务A在4中的查询出的结果其实是事务B修改后的。破坏了数据库中的隔离性。</p>
+<h3 id="2-2-2-不可重复读"><a href="#2-2-2-不可重复读" class="headerlink" title="2.2.2 不可重复读"></a>2.2.2 不可重复读</h3><p>在同一个事务中，多次读取同一数据返回的结果不同，和脏读不同的是这里读取的是已经提交过后的。</p>
+<table>
+<thead>
+<tr>
+<th align="left">时间点</th>
+<th align="left">事务A</th>
+<th align="left">事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">1</td>
+<td align="left">begin;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">2</td>
+<td align="left">select * from user where id &#x3D; 1;</td>
+<td align="left">begin;</td>
+</tr>
+<tr>
+<td align="left">3</td>
+<td align="left"></td>
+<td align="left">update user set namm &#x3D; ‘test’ where id &#x3D; 1;</td>
+</tr>
+<tr>
+<td align="left">4</td>
+<td align="left"></td>
+<td align="left">commit;</td>
+</tr>
+<tr>
+<td align="left">5</td>
+<td align="left">select * from user where id &#x3D; 1;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">6</td>
+<td align="left">commit;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<p>在事务B中提交的操作在事务A第二次查询之前，但是依然读到了事务B的更新结果，也破坏了事务的隔离性。</p>
+<h3 id="2-2-3-幻读"><a href="#2-2-3-幻读" class="headerlink" title="2.2.3 幻读"></a>2.2.3 幻读</h3><p>一个事务读到另一个事务已提交的insert数据。</p>
+<table>
+<thead>
+<tr>
+<th align="left">时间点</th>
+<th align="left">事务A</th>
+<th align="left">事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">1</td>
+<td align="left">begin;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">2</td>
+<td align="left">select * from user where id &gt; 1;</td>
+<td align="left">begin;</td>
+</tr>
+<tr>
+<td align="left">3</td>
+<td align="left"></td>
+<td align="left">insert user select 2;</td>
+</tr>
+<tr>
+<td align="left">4</td>
+<td align="left"></td>
+<td align="left">commit;</td>
+</tr>
+<tr>
+<td align="left">5</td>
+<td align="left">select * from user where id &gt; 1;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">6</td>
+<td align="left">commit;</td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<p>在事务A中查询了两次id大于1的，在第一次id大于1查询结果中没有数据，但是由于事务B插入了一条Id&#x3D;2的数据，导致事务A第二次查询时能查到事务B中插入的数据。</p>
+<p>事务中的隔离性:</p>
+<table>
+<thead>
+<tr>
+<th align="left">隔离级别</th>
+<th align="left">脏读</th>
+<th align="left">不可重复读</th>
+<th align="left">幻读</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">未提交读(RUC)</td>
+<td align="left">NO</td>
+<td align="left">NO</td>
+<td align="left">NO</td>
+</tr>
+<tr>
+<td align="left">已提交读(RC)</td>
+<td align="left">YES</td>
+<td align="left">NO</td>
+<td align="left">NO</td>
+</tr>
+<tr>
+<td align="left">可重复读(RR)</td>
+<td align="left">YES</td>
+<td align="left">YES</td>
+<td align="left">NO</td>
+</tr>
+<tr>
+<td align="left">可串行化</td>
+<td align="left">YES</td>
+<td align="left">YES</td>
+<td align="left">YES</td>
+</tr>
+</tbody></table>
+<p>小明注意到在收集资料的过程中，有资料写到InnoDB和其他数据库有点不同，InnoDB的可重复读其实就能解决幻读了，小明心想:这InnoDB还挺牛逼的，我得好好看看到底是怎么个原理。</p>
+<h2 id="2-3-InnoDB锁类型"><a href="#2-3-InnoDB锁类型" class="headerlink" title="2.3 InnoDB锁类型"></a>2.3 InnoDB锁类型</h2><p>小明首先了解一下Mysql中常见的锁类型有哪些:</p>
+<h3 id="2-3-1-S-or-X"><a href="#2-3-1-S-or-X" class="headerlink" title="2.3.1 S or X"></a>2.3.1 S or X</h3><p>在InnoDb中实现了两个标准的行级锁，可以简单的看为两个读写锁:</p>
+<ul>
+<li>S-共享锁：又叫读锁，其他事务可以继续加共享锁，但是不能继续加排他锁。</li>
+<li>X-排他锁: 又叫写锁，一旦加了写锁之后，其他事务就不能加锁了。</li>
+</ul>
+<blockquote>
+<p>兼容性:是指事务A获得一个某行某种锁之后，事务B同样的在这个行上尝试获取某种锁，如果能立即获取，则称锁兼容，反之叫冲突。</p>
+</blockquote>
+<p>纵轴是代表已有的锁，横轴是代表尝试获取的锁。</p>
+<table>
+<thead>
+<tr>
+<th align="left">.</th>
+<th align="left">X</th>
+<th align="left">S</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">X</td>
+<td align="left">冲突</td>
+<td align="left">冲突</td>
+</tr>
+<tr>
+<td align="left">S</td>
+<td align="left">冲突</td>
+<td align="left">兼容</td>
+</tr>
+</tbody></table>
+<h3 id="2-3-2-意向锁"><a href="#2-3-2-意向锁" class="headerlink" title="2.3.2 意向锁"></a>2.3.2 意向锁</h3><p>意向锁在InnoDB中是表级锁,和他的名字一样他是用来表达一个事务想要获取什么。意向锁分为:</p>
+<ul>
+<li>意向共享锁:表达一个事务想要获取一张表中某几行的共享锁。</li>
+<li>意向排他锁:表达一个事务想要获取一张表中某几行的排他锁。</li>
+</ul>
+<p>这个锁有什么用呢？为什么需要这个锁呢？ 首先说一下如果没有这个锁，如果要给这个表加上表锁，一般的做法是去遍历每一行看看他是否有行锁，这样的话效率太低，而我们有意向锁，只需要判断是否有意向锁即可，不需要再去一行行的去扫描。</p>
+<p>在InnoDB中由于支持的是行级的锁，因此InnboDB锁的兼容性可以扩展如下：</p>
+<table>
+<thead>
+<tr>
+<th align="left">.</th>
+<th align="left">IX</th>
+<th align="left">IS</th>
+<th align="left">X</th>
+<th align="left">S</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">IX</td>
+<td align="left">兼容</td>
+<td align="left">兼容</td>
+<td align="left">冲突</td>
+<td align="left">冲突</td>
+</tr>
+<tr>
+<td align="left">IS</td>
+<td align="left">兼容</td>
+<td align="left">兼容</td>
+<td align="left">冲突</td>
+<td align="left">兼容</td>
+</tr>
+<tr>
+<td align="left">X</td>
+<td align="left">冲突</td>
+<td align="left">冲突</td>
+<td align="left">冲突</td>
+<td align="left">冲突</td>
+</tr>
+<tr>
+<td align="left">S</td>
+<td align="left">冲突</td>
+<td align="left">兼容</td>
+<td align="left">冲突</td>
+<td align="left">兼容</td>
+</tr>
+</tbody></table>
+<h3 id="2-3-3-自增长锁"><a href="#2-3-3-自增长锁" class="headerlink" title="2.3.3 自增长锁"></a>2.3.3 自增长锁</h3><p>自增长锁是一种特殊的表锁机制，提升并发插入性能。对于这个锁有几个特点:</p>
+<ul>
+<li>在sql执行完就释放锁，并不是事务执行完。</li>
+<li>对于Insert…select大数据量插入会影响插入性能，因为会阻塞另外一个事务执行。</li>
+<li>自增算法可以配置。</li>
+</ul>
+<p>在MySQL5.1.2版本之后，有了很多优化，可以根据不同的模式来进行调整自增加锁的方式。小明看到了这里打开了自己的MySQL发现是5.7之后，于是便输入了下面的语句,获取到当前锁的模式:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">show</span> variables <span class="keyword">like</span> <span class="string">&#x27;innodb_autoinc_lock_mode&#x27;</span>;</span><br><span class="line"><span class="operator">+</span><span class="comment">--------------------------+-------+</span></span><br><span class="line"><span class="operator">|</span> Variable_name            <span class="operator">|</span> <span class="keyword">Value</span> <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">--------------------------+-------+</span></span><br><span class="line"><span class="operator">|</span> innodb_autoinc_lock_mode <span class="operator">|</span> <span class="number">2</span>     <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">--------------------------+-------+</span></span><br><span class="line"><span class="number">1</span> <span class="type">row</span> <span class="keyword">in</span> <span class="keyword">set</span> (<span class="number">0.01</span> sec)</span><br></pre></td></tr></table></figure>
+
+<p>在MySQL中innodbautoinclock_mode有3种配置模式：0、1、2，分别对应”传统模式”, “连续模式”, “交错模式”。</p>
+<ol>
+<li>传统模式:也就是我们最上面的使用表锁。</li>
+<li>连续模式:对于插入的时候可以确定行数的使用互斥量，对于不能确定行数的使用表锁的模式。</li>
+<li>交错模式:所有的都使用互斥量，为什么叫交错模式呢，有可能在批量插入时自增值不是连续的，当然一般来说如果不看重自增值连续一般选择这个模式，性能是最好的。</li>
+</ol>
+<h2 id="2-4InnoDB锁算法"><a href="#2-4InnoDB锁算法" class="headerlink" title="2.4InnoDB锁算法"></a>2.4InnoDB锁算法</h2><p>小明已经了解到了在InnoDB中有哪些锁类型，但是如何去使用这些锁，还是得靠锁算法。</p>
+<h3 id="2-4-1-记录锁-Record-Lock"><a href="#2-4-1-记录锁-Record-Lock" class="headerlink" title="2.4.1 记录锁(Record-Lock)"></a>2.4.1 记录锁(Record-Lock)</h3><p>记录锁是锁住记录的，这里要说明的是这里锁住的是索引记录，而不是我们真正的数据记录。</p>
+<ul>
+<li>如果锁的是非主键索引，会在自己的索引上面加锁之后然后再去主键上面加锁锁住.</li>
+<li>如果没有表上没有索引(包括没有主键)，则会使用隐藏的主键索引进行加锁。</li>
+<li>如果要锁的列没有索引，则会进行全表记录加锁。</li>
+</ul>
+<h3 id="2-4-2-间隙锁"><a href="#2-4-2-间隙锁" class="headerlink" title="2.4.2 间隙锁"></a>2.4.2 间隙锁</h3><p>间隙锁顾名思义锁间隙，不锁记录。锁间隙的意思就是锁定某一个范围，间隙锁又叫gap锁，其不会阻塞其他的gap锁，但是会阻塞插入间隙锁，这也是用来防止幻读的关键。</p>
+<p><img src="/images/mysql-lock/mysql-lock-3.webp" alt="图片"></p>
+<h3 id="2-4-3-next-key锁"><a href="#2-4-3-next-key锁" class="headerlink" title="2.4.3 next-key锁"></a>2.4.3 next-key锁</h3><p>这个锁本质是记录锁加上gap锁。在RR隔离级别下(InnoDB默认)，Innodb对于行的扫描锁定都是使用此算法，但是如果查询扫描中有唯一索引会退化成只使用记录锁。为什么呢? 因为唯一索引能确定行数，而其他索引不能确定行数，有可能在其他事务中会再次添加这个索引的数据会造成幻读。</p>
+<blockquote>
+<p>这里也说明了为什么Mysql可以在RR级别下解决幻读。</p>
+</blockquote>
+<h3 id="2-4-4-插入意向锁"><a href="#2-4-4-插入意向锁" class="headerlink" title="2.4.4 插入意向锁"></a>2.4.4 插入意向锁</h3><p>插入意向锁Mysql官方对其的解释:</p>
+<blockquote>
+<p>An insert intention lock is a type of gap lock set by INSERT operations prior to row insertion. This lock signals the intent to insert in such a way that multiple transactions inserting into the same index gap need not wait for each other if they are not inserting at the same position within the gap. Suppose that there are index records with values of 4 and 7. Separate transactions that attempt to insert values of 5 and 6, respectively, each lock the gap between 4 and 7 with insert intention locks prior to obtaining the exclusive lock on the inserted row, but do not block each other because the rows are nonconflicting.</p>
+</blockquote>
+<p>可以看出插入意向锁是在插入的时候产生的,在多个事务同时写入不同数据至同一索引间隙的时候，并不需要等待其他事务完成，不会发生锁等待。假设有一个记录索引包含键值4和7，不同的事务分别插入5和6，每个事务都会产生一个加在4-7之间的插入意向锁，获取在插入行上的排它锁，但是不会被互相锁住，因为数据行并不冲突。</p>
+<blockquote>
+<p>这里要说明的是如果有间隙锁了，插入意向锁会被阻塞。</p>
+</blockquote>
+<h2 id="2-5-MVCC"><a href="#2-5-MVCC" class="headerlink" title="2.5 MVCC"></a>2.5 MVCC</h2><p>MVCC，多版本并发控制技术。在InnoDB中，在每一行记录的后面增加两个隐藏列，记录创建版本号和删除版本号。通过版本号和行锁，从而提高数据库系统并发性能。</p>
+<p>在MVCC中，对于读操作可以分为两种读:</p>
+<ul>
+<li>快照读:读取的历史数据，简单的select语句，不加锁，MVCC实现可重复读，使用的是MVCC机制读取undo中的已经提交的数据。所以它的读取是非阻塞的。</li>
+<li>当前读:需要加锁的语句,update,insert,delete,select…for update等等都是当前读。</li>
+</ul>
+<p>在RR隔离级别下的快照读，不是以begin事务开始的时间点作为snapshot建立时间点，而是以第一条select语句的时间点作为snapshot建立的时间点。以后的select都会读取当前时间点的快照值。</p>
+<p>在RC隔离级别下每次快照读均会创建新的快照。</p>
+<blockquote>
+<p>具体的原理是通过每行会有两个隐藏的字段一个是用来记录当前事务，一个是用来记录回滚的指向Undolog。利用undolog就可以读取到之前的快照，不需要单独开辟空间记录。</p>
+</blockquote>
+<h1 id="3-加锁分析"><a href="#3-加锁分析" class="headerlink" title="3.加锁分析"></a>3.加锁分析</h1><p>小明到这里，已经学习很多mysql锁有关的基础知识，所以决定自己创建一个表搞下实验。首先创建了一个简单的用户表:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `<span class="keyword">user</span>` (</span><br><span class="line">`id` <span class="type">int</span>(<span class="number">11</span>) unsigned <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT,</span><br><span class="line">`name` <span class="type">varchar</span>(<span class="number">11</span>) <span class="type">CHARACTER</span> <span class="keyword">SET</span> utf8mb4 <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span>,</span><br><span class="line">`comment` <span class="type">varchar</span>(<span class="number">11</span>) <span class="type">CHARACTER</span> <span class="keyword">SET</span> utf8 <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span>, </span><br><span class="line"><span class="keyword">PRIMARY</span> KEY (`id`),  </span><br><span class="line">KEY `index_name` (`name`)</span><br><span class="line">) ENGINE<span class="operator">=</span>InnoDB AUTO_INCREMENT<span class="operator">=</span><span class="number">0</span> <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8mb4 <span class="keyword">COLLATE</span><span class="operator">=</span>utf8mb4_bin;</span><br></pre></td></tr></table></figure>
+
+<p>然后插入了几条实验数据:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">insert</span> <span class="keyword">user</span> <span class="keyword">select</span> <span class="number">20</span>,<span class="number">333</span>,<span class="number">333</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">user</span> <span class="keyword">select</span> <span class="number">25</span>,<span class="number">555</span>,<span class="number">555</span>;</span><br><span class="line"><span class="keyword">insert</span> <span class="keyword">user</span> <span class="keyword">select</span> <span class="number">20</span>,<span class="number">999</span>,<span class="number">999</span>;</span><br></pre></td></tr></table></figure>
+
+<p>数据库事务隔离选择了RR</p>
+<h2 id="3-1-实验1"><a href="#3-1-实验1" class="headerlink" title="3.1 实验1"></a>3.1 实验1</h2><p>小明开启了两个事务，进行实验1.</p>
+<table>
+<thead>
+<tr>
+<th align="left">时间点</th>
+<th align="left">事务A</th>
+<th align="left">事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">1</td>
+<td align="left">begin;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">2</td>
+<td align="left">select * from user where name &#x3D; ‘555’ for update;</td>
+<td align="left">begin;</td>
+</tr>
+<tr>
+<td align="left">3</td>
+<td align="left"></td>
+<td align="left">insert user select 31,’556’,’556’;</td>
+</tr>
+<tr>
+<td align="left">4</td>
+<td align="left"></td>
+<td align="left">ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction</td>
+</tr>
+</tbody></table>
+<p>小明开启了两个事务并输入了上面的语句，发现事务B居然出现了超时，小明看了一下自己明明是对name &#x3D; 555这一行进行的加锁，为什么我想插入name&#x3D;556给我阻塞了。于是小明打开命令行输入:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="operator">*</span> <span class="keyword">from</span> information_schema.INNODB_LOCKS</span><br></pre></td></tr></table></figure>
+
+<p>发现在事务A中给555加了Next-key锁，事务B插入的时候会首先进行插入意向锁的插入，于是得出下面结论: <img src="/images/mysql-lock/mysql-lock-4.jpg" alt="图片">可以看见事务B由于间隙锁和插入意向锁的冲突，导致了阻塞。</p>
+<h2 id="3-2-实验2"><a href="#3-2-实验2" class="headerlink" title="3.2 实验2"></a>3.2 实验2</h2><p>小明发现上面查询条件用的是普通的非唯一索引，于是小明就试了一下主键索引:</p>
+<table>
+<thead>
+<tr>
+<th align="left">时间点</th>
+<th align="left">事务A</th>
+<th align="left">事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">1</td>
+<td align="left">begin;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">2</td>
+<td align="left">select * from user where id &#x3D; 25 for update;</td>
+<td align="left">begin;</td>
+</tr>
+<tr>
+<td align="left">3</td>
+<td align="left"></td>
+<td align="left">insert user select 26,’666’,’666’;</td>
+</tr>
+<tr>
+<td align="left">4</td>
+<td align="left"></td>
+<td align="left">Query OK, 1 row affected (0.00 sec)</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<p>Records: 1 Duplicates: 0 Warnings: 0</p>
+<p>居然发现事务B并没有发生阻塞，哎这个是咋回事呢，小明有点疑惑，按照实验1的套路应该会被阻塞啊，因为25-30之间会有间隙锁。于是小明又祭出了命令行，发现只加了X记录锁。原来是因为唯一索引会降级记录锁，这么做的理由是:非唯一索引加next-key锁由于不能确定明确的行数有可能其他事务在你查询的过程中，再次添加这个索引的数据，导致隔离性遭到破坏，也就是幻读。唯一索引由于明确了唯一的数据行，所以不需要添加间隙锁解决幻读。</p>
+<p><img src="/images/mysql-lock/mysql-lock-5.webp" alt="图片"></p>
+<h2 id="3-3-实验3"><a href="#3-3-实验3" class="headerlink" title="3.3 实验3"></a>3.3 实验3</h2><p>上面测试了主键索引，非唯一索引，这里还有个字段是没有索引，如果对其加锁会出现什么呢？</p>
+<table>
+<thead>
+<tr>
+<th align="left">时间点</th>
+<th align="left">事务A</th>
+<th align="left">事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">1</td>
+<td align="left">begin;</td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left">2</td>
+<td align="left">select * from user where comment &#x3D; ‘555’ for update;</td>
+<td align="left">begin;</td>
+</tr>
+<tr>
+<td align="left">3</td>
+<td align="left"></td>
+<td align="left">insert user select 26,’666’,’666’;</td>
+</tr>
+<tr>
+<td align="left">4</td>
+<td align="left"></td>
+<td align="left">ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction</td>
+</tr>
+<tr>
+<td align="left">5</td>
+<td align="left"></td>
+<td align="left">insert user select 31,’3131’,’3131’;</td>
+</tr>
+<tr>
+<td align="left">6</td>
+<td align="left"></td>
+<td align="left">ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction</td>
+</tr>
+<tr>
+<td align="left">7</td>
+<td align="left"></td>
+<td align="left">insert user select 10,’100’,’100’;</td>
+</tr>
+<tr>
+<td align="left">8</td>
+<td align="left"></td>
+<td align="left">ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction</td>
+</tr>
+<tr>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+<p>小明一看哎哟我去，这个咋回事呢，咋不管是用实验1非间隙锁范围的数据，还是用间隙锁里面的数据都不行，难道是加了表锁吗？</p>
+<p>的确，如果用没有索引的数据，其会对所有聚簇索引上都加上next-key锁。</p>
+<p><img src="/images/mysql-lock/mysql-lock-6.webp" alt="图片"></p>
+<p>所以大家平常开发的时候如果对查询条件没有索引的，一定进行一致性读，也就是加锁读，会导致全表加上索引，会导致其他事务全部阻塞，数据库基本会处于不可用状态。</p>
+<h1 id="4-回到事故"><a href="#4-回到事故" class="headerlink" title="4.回到事故"></a>4.回到事故</h1><h2 id="4-1-死锁"><a href="#4-1-死锁" class="headerlink" title="4.1 死锁"></a>4.1 死锁</h2><p>小明做完实验之后总算是了解清楚了加锁的一些基本套路，但是之前线上出现的死锁又是什么东西呢？</p>
+<p>死锁:是指两个或两个以上的事务在执行过程中，因争夺资源而造成的一种互相等待的现象。说明有等待才会有死锁，解决死锁可以通过去掉等待，比如回滚事务。</p>
+<p>解决死锁的两个办法:</p>
+<ol>
+<li>等待超时:当某一个事务等待超时之后回滚该事务，另外一个事务就可以执行了，但是这样做效率较低，会出现等待时间，还有个问题是如果这个事务所占的权重较大，已经更新了很多数据了，但是被回滚了，就会导致资源浪费。</li>
+<li>等待图(wait-for-graph): 等待图用来描述事务之间的等待关系，当这个图如果出现回路如下:</li>
+</ol>
+<p><img src="/images/mysql-lock/mysql-lock-7.webp" alt="图片"> 就出现回滚，通常来说InnoDB会选择回滚权重较小的事务，也就是undo较小的事务。</p>
+<h2 id="4-2-线上问题"><a href="#4-2-线上问题" class="headerlink" title="4.2 线上问题"></a>4.2 线上问题</h2><p>小明到这里，基本需要的基本功都有了，于是在自己的本地表中开始复现这个问题:</p>
+<table>
+<thead>
+<tr>
+<th align="left">时间点</th>
+<th align="left">事务A</th>
+<th align="left">事务B</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">1</td>
+<td align="left">begin;</td>
+<td align="left">begin;</td>
+</tr>
+<tr>
+<td align="left">2</td>
+<td align="left">delete from user where name &#x3D; ‘777’;</td>
+<td align="left">delete from user where name &#x3D; ‘666’;</td>
+</tr>
+<tr>
+<td align="left">3</td>
+<td align="left">insert user select 27,’777’,’777’;</td>
+<td align="left">insert user select 26,’666’,’666’;</td>
+</tr>
+<tr>
+<td align="left">4</td>
+<td align="left">ERROR 1213 (40001): Deadlock found when trying to get lock; try restarting transaction</td>
+<td align="left">Query OK, 1 row affected (14.32 sec) Records: 1 Duplicates: 0 Warnings: 0</td>
+</tr>
+</tbody></table>
+<p>可以看见事务A出现被回滚了，而事务B成功执行。 具体每个时间点发生了什么呢?</p>
+<p>时间点2:事务A删除name &#x3D; ‘777’的数据，需要对777这个索引加上next-Key锁，但是其不存在，所以只对555-999之间加间隙锁，同理事务B也对555-999之间加间隙锁。间隙锁之间是兼容的。</p>
+<p>时间点3:事务A，执行Insert操作，首先插入意向锁，但是555-999之间有间隙锁，由于插入意向锁和间隙锁冲突，事务A阻塞，等待事务B释放间隙锁。事务B同理，等待事务A释放间隙锁。于是出现了A-&gt;B,B-&gt;A回路等待。</p>
+<p>时间点4:事务管理器选择回滚事务A，事务B插入操作执行成功。</p>
+<p><img src="/images/mysql-lock/mysql-lock-8.jpg" alt="图片"></p>
+<h2 id="4-3-修复BUG"><a href="#4-3-修复BUG" class="headerlink" title="4.3 修复BUG"></a>4.3 修复BUG</h2><p>这个问题总算是被小明找到了，就是因为间隙锁，现在需要解决这个问题，这个问题的原因是出现了间隙锁，那就来去掉他吧:</p>
+<ul>
+<li>方案一:隔离级别降级为RC，在RC级别下不会加入间隙锁，所以就不会出现毛病了，但是在RC级别下会出现幻读，可提交读都破坏隔离性的毛病，所以这个方案不行。</li>
+<li>方案二:隔离级别升级为可序列化，小明经过测试后发现不会出现这个问题，但是在可序列化级别下，性能会较低，会出现较多的锁等待，同样的也不考虑。</li>
+<li>方案三:修改代码逻辑，不要直接删，改成每个数据由业务逻辑去判断哪些是更新，哪些是删除，那些是添加，这个工作量稍大，小明写这个直接删除的逻辑就是为了不做这些复杂的事的，所以这个方案先不考虑。</li>
+<li>方案四:较少的修改代码逻辑，在删除之前，可以通过快照查询(不加锁)，如果查询没有结果，则直接插入，如果有通过主键进行删除，在之前第三节实验2中，通过唯一索引会降级为记录锁，所以不存在间隙锁。</li>
+</ul>
+<p>经过考虑小明选择了第四种，马上进行了修复，然后上线观察验证，发现现在已经不会出现这个Bug了，这下小明总算能睡个安稳觉了。</p>
+<h2 id="4-4-如何防止死锁"><a href="#4-4-如何防止死锁" class="headerlink" title="4.4 如何防止死锁"></a>4.4 如何防止死锁</h2><p>小明通过基础的学习和平常的经验总结了如下几点:</p>
+<ul>
+<li>以固定的顺序访问表和行。交叉访问更容易造成事务等待回路。</li>
+<li>尽量避免大事务，占有的资源锁越多，越容易出现死锁。建议拆成小事务。</li>
+<li>降低隔离级别。如果业务允许(上面4.3也分析了，某些业务并不能允许)，将隔离级别调低也是较好的选择，比如将隔离级别从RR调整为RC，可以避免掉很多因为gap锁造成的死锁。</li>
+<li>为表添加合理的索引。防止没有索引出现表锁，出现的死锁的概率会突增。</li>
+</ul>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://learnku.com/articles/39212">https://learnku.com/articles/39212</a></p>
+<p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/yzXbbutzVJ1hIZgVszIBgw">https://mp.weixin.qq.com/s/yzXbbutzVJ1hIZgVszIBgw</a></p>
+ 
+      <!-- reward -->
+      
+    </div>
+    
+
+    <!-- copyright -->
+    
+    <div class="declare">
+      <ul class="post-copyright">
+        <li>
+          <i class="ri-copyright-line"></i>
+          <strong>Copyright： </strong>
+          
+          Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+          
+        </li>
+      </ul>
+    </div>
+    
+    <footer class="article-footer">
+       
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.idream68.top/2021/04/28/database/mysql/mysql-lock-overview/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>  
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/mysql/" rel="tag">mysql</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%94%81/" rel="tag">锁</a></li></ul>
+
+    </footer>
+  </div>
+
+   
+  <nav class="article-nav">
+    
+      <a href="/2021/04/30/spring/springboot/spring-boot-path/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            springboot 配置文件 server.context-path 路径
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2021/04/28/database/mysql/mysql-Interview-questions/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">mysql面试题目</div>
+      </a>
+    
+  </nav>
+
+   
+<!-- valine评论 -->
+<div id="vcomments-box">
+  <div id="vcomments"></div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js"></script>
+<script>
+  new Valine({
+    el: "#vcomments",
+    app_id: "WBAKYWjpwseQlCCCbVA2hN2j-MdYXbMMI",
+    app_key: "1wXEOnVKMoNjeeM195vDMQch",
+    path: window.location.pathname,
+    avatar: "monsterid",
+    placeholder: "给我的文章加点评论吧~",
+    recordIP: true,
+  });
+  const infoEle = document.querySelector("#vcomments .info");
+  if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+    infoEle.childNodes.forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+  }
+</script>
+<style>
+  #vcomments-box {
+    padding: 5px 30px;
+  }
+
+  @media screen and (max-width: 800px) {
+    #vcomments-box {
+      padding: 5px 0px;
+    }
+  }
+
+  #vcomments-box #vcomments {
+    background-color: #fff;
+  }
+
+  .v .vlist .vcard .vh {
+    padding-right: 20px;
+  }
+
+  .v .vlist .vcard {
+    padding-left: 10px;
+  }
+</style>
+
+ 
+   
+     
+</article>
+
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul>
+      <li>
+        Copyrights &copy;
+        2021-2022
+        <i class="ri-heart-fill heart_icon"></i> zjhan
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+        
+        
+        Powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+        <span class="division">|</span>
+        Theme - <a href="https://github.com/Shen-Yu/hexo-theme-ayer" target="_blank">Ayer</a>
+        
+      </li>
+    </ul>
+    <ul>
+      <li>
+        
+      </li>
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      
+    </ul>
+    <ul>
+      <li>
+        <!-- cnzz统计 -->
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Dream"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" target="_blank" rel="noopener" href="https://500px.com.cn/idream68">摄影</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="https://cdn.jsdelivr.net/gh/Shen-Yu/cdn/img/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+ 
+<script src="/js/lazyload.min.js"></script>
+
+<!-- Tocbot -->
+ 
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  tocbot.init({
+    tocSelector: ".tocbot",
+    contentSelector: ".article-entry",
+    headingSelector: "h1, h2, h3, h4, h5, h6",
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: "main",
+    positionFixedSelector: ".tocbot",
+    positionFixedClass: "is-position-fixed",
+    fixedSidebarOffset: "auto",
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+<!-- ImageViewer -->
+ <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script> 
+<!-- MathJax -->
+
+<!-- Katex -->
+
+<!-- busuanzi  -->
+
+<!-- ClickLove -->
+
+<!-- ClickBoom1 -->
+
+<!-- ClickBoom2 -->
+
+<!-- CodeCopy -->
+ 
+<link rel="stylesheet" href="/css/clipboard.css">
+ <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script>
+  function wait(callback, seconds) {
+    var timelag = null;
+    timelag = window.setTimeout(callback, seconds);
+  }
+  !function (e, t, a) {
+    var initCopyCode = function(){
+      var copyHtml = '';
+      copyHtml += '<button class="btn-copy" data-clipboard-snippet="">';
+      copyHtml += '<i class="ri-file-copy-2-line"></i><span>COPY</span>';
+      copyHtml += '</button>';
+      $(".highlight .code pre").before(copyHtml);
+      $(".article pre code").before(copyHtml);
+      var clipboard = new ClipboardJS('.btn-copy', {
+        target: function(trigger) {
+          return trigger.nextElementSibling;
+        }
+      });
+      clipboard.on('success', function(e) {
+        let $btn = $(e.trigger);
+        $btn.addClass('copied');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-checkbox-circle-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPIED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-checkbox-circle-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+      clipboard.on('error', function(e) {
+        e.clearSelection();
+        let $btn = $(e.trigger);
+        $btn.addClass('copy-failed');
+        let $icon = $($btn.find('i'));
+        $icon.removeClass('ri-file-copy-2-line');
+        $icon.addClass('ri-time-line');
+        let $span = $($btn.find('span'));
+        $span[0].innerText = 'COPY FAILED';
+        
+        wait(function () { // 等待两秒钟后恢复
+          $icon.removeClass('ri-time-line');
+          $icon.addClass('ri-file-copy-2-line');
+          $span[0].innerText = 'COPY';
+        }, 2000);
+      });
+    }
+    initCopyCode();
+  }(window, document);
+</script>
+ 
+<!-- CanvasBackground -->
+ 
+<script src="/js/dz.js"></script>
+ 
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ theme: "simple" });
+  }
+</script>
+
+
+    
+  </div>
+</body>
+
+</html>

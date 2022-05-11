@@ -13,8 +13,8 @@ menu:
 # https://github.com/mattboldt/typed.js
 subtitle:
   enable: true # 是否开启动效
-  text: 每天一点点，小草终究会长成大树 # 显示的文字
-  text2: 想要的都拥有，得不到的请释怀  # 滚动播放，如果不需要可以留空
+  text: 贵在坚持 # 显示的文字
+  text2: ""  # 滚动播放，如果不需要可以留空
   text3: "" # 最多支持三段文字
   startDelay: 0 # 延迟时间
   typeSpeed: 200 # 打字速度
@@ -30,7 +30,7 @@ logo: /images/ayer-side.svg
 # enable-是否启用封面；path-封面背景图；logo-封面logo
 cover:
   enable: true
-  path: /images/cover6.jpg # /source/images目录下附送多张美图，可更换
+  path: /images/cover2.jpg # /source/images目录下附送多张美图，可更换
   logo: false #/images/ayer.svg，如果不要直接设置成false
 
 # 页面顶部进度条
@@ -123,7 +123,7 @@ layout:
 github:
   # (关闭请设置为false)
   enable: true
-  url: https://github.com/idream68
+  url: https://gitee.com/idream68
 
 # 网易云音乐插件
 music:
@@ -170,7 +170,7 @@ mermaid:
 since: 2021
 
 # 是否显示页脚信息(建议保留)
-pageFooter: true
+pageFooter: false
 
 # ICP备案信息尾部显示
 icp:
@@ -209,12 +209,12 @@ friends_link:
 # 1、Valine[一款快速、简洁且高效的无后端评论系统](https://github.com/xCss/Valine)
 # 启用Valine必须先创建leancloud应用， 获取 id|key 填入即可
 leancloud:
-  enable: true
+  enable: false
   app_id: WBAKYWjpwseQlCCCbVA2hN2j-MdYXbMMI
   app_key: 1wXEOnVKMoNjeeM195vDMQch
 # Valine配置
 valine:
-  enable: true # 是否启用
+  enable: false # 是否启用
   avatar: monsterid # 头像样式(https://valine.js.org/avatar.html)
   placeholder: 给我的文章加点评论吧~ # placeholder
 

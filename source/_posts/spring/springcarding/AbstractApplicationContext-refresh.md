@@ -10,6 +10,7 @@ tags:
 ---
 
 ### 流程图
+
 ```flow
 s=>start: 入口|:>/2021/05/11/springcarding/ClassPathXmlApplicationContext-main
 e=>end: 返回|:>/2021/05/11/springcarding/ClassPathXmlApplicationContext-main
@@ -42,8 +43,6 @@ finishRefresh->e
 
 ### 流程说明
 
-
-
 ### 准备刷新
 
 ```flow
@@ -74,8 +73,3 @@ setEarlyListeners->setEarlyEnents
 addListeners->setEarlyEnents
 setEarlyEnents->e
 ```
-
-### 流程说明
-
-
-

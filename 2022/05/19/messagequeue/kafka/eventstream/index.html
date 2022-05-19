@@ -11,7 +11,7 @@
         name="viewport"
         content="width=device-width, initial-scale=1, maximum-scale=1"
       />
-      <title>kafka 基础 |  Dream</title>
+      <title>事件流概述 |  Dream</title>
   <meta name="generator" content="hexo-theme-ayer">
       
       <link rel="shortcut icon" href="/favicon.ico" />
@@ -46,7 +46,7 @@
     <main class="content on">
       <section class="outer">
   <article
-  id="post-messagequeue/kafka/kafkabase"
+  id="post-messagequeue/kafka/eventstream"
   class="article article-type-post"
   itemscope
   itemprop="blogPost"
@@ -57,7 +57,7 @@
     <header class="article-header">
        
 <h1 class="article-title sea-center" style="border-left:0" itemprop="name">
-  kafka 基础
+  事件流概述
 </h1>
  
 
@@ -65,19 +65,15 @@
     </header>
      
     <div class="article-meta">
-      <a href="/2022/05/11/messagequeue/kafka/kafkabase/" class="article-date">
-  <time datetime="2022-05-11T07:08:11.000Z" itemprop="datePublished">2022-05-11</time>
-</a> 
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/kafka/">kafka</a> / <a class="article-category-link" href="/categories/kafka/queue/">queue</a>
-  </div>
-  
+      <a href="/2022/05/19/messagequeue/kafka/eventstream/" class="article-date">
+  <time datetime="2022-05-19T13:16:10.000Z" itemprop="datePublished">2022-05-19</time>
+</a>   
 <div class="word_count">
     <span class="post-time">
         <span class="post-meta-item-icon">
             <i class="ri-quill-pen-line"></i>
             <span class="post-meta-item-text"> Word count:</span>
-            <span class="post-count">1.1k</span>
+            <span class="post-count">420</span>
         </span>
     </span>
 
@@ -86,7 +82,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-book-open-line"></i>
             <span class="post-meta-item-text"> Reading time≈</span>
-            <span class="post-count">3 min</span>
+            <span class="post-count">1 min</span>
         </span>
     </span>
 </div>
@@ -101,25 +97,18 @@
   
     <div class="article-entry" itemprop="articleBody">
        
-  <h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p><code>Kafka</code>结合了三个关键功能:</p>
+  <h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>事件流是人体中枢神经系统的数字等效物。它是“永远在线”世界的技术基础，在这个世界中，企业越来越多地由软件定义和自动化，并且软件的用户更多地是软件。</p>
+<p>从技术上讲，事件流是从事件源（如数据库、传感器、移动设备、云服务和软件应用程序）以事件流的形式实时捕获数据的实践；持久存储这些事件流以供以后检索；实时和回顾性地操作、处理和响应事件流；并根据需要将事件流路由到不同的目标技术。因此，事件流确保了数据的连续流动和解释，以便正确的信息在正确的时间出现在正确的位置。</p>
+<h2 id="事件流可以干什么"><a href="#事件流可以干什么" class="headerlink" title="事件流可以干什么"></a>事件流可以干什么</h2><p>事件流应用于 众多行业和组织的各种用例。它的许多例子包括：</p>
 <ul>
-<li>发布（写入）和订阅（读取）<a href="/2022/05/19/messagequeue/kafka/eventstream/">事件流</a>，包括从其他系统持续导入&#x2F;导出数据 。</li>
-<li>根据需要持久可靠地 存储事件流。</li>
-<li>在事件发生时或回顾性 地处理事件流。<br>所有这些功能都以分布式、高度可扩展、弹性、容错和安全的方式提供。Kafka 可以部署在裸机硬件、虚拟机和容器上，也可以部署在本地和云端。</li>
+<li>实时处理支付和金融交易，例如在证券交易所、银行和保险中。</li>
+<li>实时跟踪和监控汽车、卡车、车队和货运，例如在物流和汽车行业。</li>
+<li>持续捕获和分析来自物联网设备或其他设备的传感器数据，例如工厂和风电场。</li>
+<li>收集并立即响应客户互动和订单，例如零售、酒店和旅游行业以及移动应用程序。</li>
+<li>监测住院病人，预测病情变化，确保在紧急情况下及时治疗。</li>
+<li>连接、存储和提供公司不同部门产生的数据。</li>
+<li>作为数据平台、事件驱动架构和微服务的基础。</li>
 </ul>
-<h2 id="工作原理概述"><a href="#工作原理概述" class="headerlink" title="工作原理概述"></a>工作原理概述</h2><p><code>Kafka</code>是一个分布式系统，由通过高性能TCP网络协议进行通信的<code>服务器</code>和<code>客户端</code>组成。</p>
-<ul>
-<li><p>服务器：Kafka 作为一个或多个服务器的集群运行，可以跨越多个数据中心或云区域。其中一些服务器形成存储层，称为代理。其他服务器运行 Kafka Connect以将数据作为事件流持续导入和导出，以将 Kafka 与现有的系统（如关系数据库以及其他 Kafka 集群）集成。Kafka 集群具有高度可扩展性和容错性：如果其中任何一个服务器出现故障，其他服务器将接管它们的工作，以确保持续运行而不会丢失任何数据。</p>
-</li>
-<li><p><a target="_blank" rel="noopener" href="https://cwiki.apache.org/confluence/display/KAFKA/Clients">客户端</a>：支持分布式应用程序和微服务，以并行、大规模和容错方式读取、写入和处理事件流，即使在网络问题或机器故障的情况下也是如此。</p>
-</li>
-</ul>
-<h2 id="概念和术语"><a href="#概念和术语" class="headerlink" title="概念和术语"></a>概念和术语</h2><p><strong>事件</strong>： 记录了业务中“发生了某事” 的事实。在文档中也称为记录或消息。从概念上讲，事件具有键、值、时间戳和可选的元数据标头。<br>  示例：<br>  事件键：“爱丽丝”<br>  事件描述：“向 Bob 支付了 200 美元”<br>  事件时间戳：“2020 年 6 月 25 日下午 2:06”</p>
-<p><strong>生产者</strong>是那些向 Kafka 发布（写入）事件的客户端应用程序，而<strong>消费者</strong>是订阅（读取和处理）这些事件的那些客户端应用程序。在 Kafka 中，生产者和消费者完全解耦并且彼此不可知，生产者永远不需要等待消费者。</p>
-<p><strong>事件</strong>被组织并持久地存储在<strong>主题</strong>中。非常简单，<strong>主题</strong>类似于文件系统中的<code>文件夹</code>，<strong>事件</strong>是该文件夹中的<code>文件</code>。示例主题名称可以是“付款”。在Kafka一个主题可以有<code>零个</code>、<code>一个</code>或<code>多个</code>向其写入事件的<strong>生产者</strong>，以及<code>零个</code>、<code>一个</code>或<code>多个</code>订阅这些事件的<strong>消费者</strong>。<strong>主题</strong>中的<strong>事件</strong>可以根据需要随时读取——与传统的消息传递系统不同，<strong>事件</strong>在<code>消费后不会被删除</code>。相反，可以通过每个主题的配置设置来定义 Kafka 应该保存事件多长时间，过期事件将被丢弃。</p>
-<p><strong>主题</strong>是<strong>分区</strong>的，这意味着一个主题分布在位于不同 Kafka 代理上的多个“桶”中。数据的这种分布式放置对于可伸缩性非常重要，因为它允许客户端应用程序同时从多个代理读取和写入数据。当一个新事件发布到一个主题时，它实际上是<code>附加</code>到主题的分区之一。具有相同<code>事件键</code>（例如，客户或车辆 ID）的事件被写入<code>同一个分区</code>，并且 Kafka保证给定<code>主题分区</code>的任何消费者将始终以与写入事件<code>完全相同的顺序</code>读取该分区的事件。<br><img src="/images/kafka-base/streams-and-tables-p1_p4.png" alt="images"><br>图：此示例主题有四个分区 P1–P4。两个不同的生产者客户端通过网络将事件写入主题的分区，彼此独立地向主题发布新事件。具有相同键的事件（在图中由它们的颜色表示）被写入同一个分区。<strong>如果合适的话，两个生产者都可以写入同一个分区。</strong></p>
-<p>为了使数据具有容错性和高可用性，可以复制每个主题，甚至跨地理区域或数据中心，以便始终有多个代理拥有数据副本，以防万一出现问题，等等。一个常见的生产设置是复制因子为 3，即始终存在三个数据副本。此复制在主题分区级别执行。</p>
-<p><a target="_blank" rel="noopener" href="https://kafka.apache.org/">官网</a></p>
  
       <!-- reward -->
       
@@ -184,32 +173,21 @@
     <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
     <p>扫一扫，分享到微信</p>
     <div class="wx-qrcode">
-      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.gitblog.idream68.top/2022/05/11/messagequeue/kafka/kafkabase/" alt="微信分享二维码">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.gitblog.idream68.top/2022/05/19/messagequeue/kafka/eventstream/" alt="微信分享二维码">
     </div>
 </div>
 
 <div id="share-mask"></div>  
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/kafka/" rel="tag">kafka</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/queue/" rel="tag">queue</a></li></ul>
-
     </footer>
   </div>
 
    
   <nav class="article-nav">
     
-      <a href="/2022/05/11/messagequeue/rabbitmq/rabbitmqbase/" class="article-nav-link">
-        <strong class="article-nav-caption">上一篇</strong>
-        <div class="article-nav-title">
-          
-            rabbitmq 基础
-          
-        </div>
-      </a>
     
-    
-      <a href="/2022/05/11/elasticsearch/elasticsearchbase/" class="article-nav-link">
+      <a href="/2022/05/11/spring/springcloud/springcloudbase/" class="article-nav-link">
         <strong class="article-nav-caption">下一篇</strong>
-        <div class="article-nav-title">elasticsearch基础</div>
+        <div class="article-nav-title">springcloud基础</div>
       </a>
     
   </nav>

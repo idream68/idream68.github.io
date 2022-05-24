@@ -590,3 +590,4 @@ public class ReceiveLogsTopic {
 ---
 
 [官网](https://www.rabbitmq.com/)
+[配置说明](https://www.rabbitmq.com/configure.html)
